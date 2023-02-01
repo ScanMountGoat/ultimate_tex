@@ -1,0 +1,8 @@
+/target
+
+# Image Files
+*.nutexb
+*.png
+*.bntx
+*.tiff
+*.dds

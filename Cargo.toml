@@ -1,0 +1,2 @@
+[workspace]
+members = ["ultimate_tex", "ultimate_tex_app", "ultimate_tex_cli"]

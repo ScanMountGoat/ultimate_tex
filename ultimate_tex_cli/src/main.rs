@@ -1,0 +1,59 @@
+use std::{path::Path, str::FromStr};
+
+use clap::Parser;
+use ultimate_tex::{convert_to_dds, convert_to_image, convert_to_nutexb, ImageFile};
+
+#[derive(Parser, Debug)]
+#[command(author, version, about = "Smash Ultimate texture converter", long_about = None)]
+struct Args {
+    #[arg(help = "The input image file to convert")]
+    input: String,
+
+    #[arg(help = "The output converted image file")]
+    output: String,
+
+    // TODO: make this a value enum to show possible image formats?
+    #[arg(
+        short = 'f',
+        long = "format",
+        help = "The output image format for files supporting compression"
+    )]
+    format: Option<String>,
+
+    #[arg(
+        long = "no-mipmaps",
+        help = "Disable mipmap generation and only include the base mip level"
+    )]
+    no_mipmaps: bool,
+}
+
+fn main() {
+    let args = Args::parse();
+    let input = Path::new(&args.input);
+    let output = Path::new(&args.output);
+
+    let input_image = ImageFile::read(input).unwrap();
+
+    let image_format = args
+        .format
+        .map(|s| image_dds::ImageFormat::from_str(&s).unwrap())
+        .unwrap_or(image_dds::ImageFormat::BC7Unorm);
+
+    // TODO: Resaving with the same extension but different format should still convert.
+    // TODO: Default to BC7Unorm for compressed data if no format is specified?
+    // Ignore the format when saving as image.
+    match output
+        .extension()
+        .unwrap()
+        .to_str()
+        .unwrap()
+        .to_lowercase()
+        .as_str()
+    {
+        "nutexb" => convert_to_nutexb(&input_image, output, image_format),
+        "bntx" => (),
+        "dds" => convert_to_dds(&input_image, output, image_format),
+        // Assume the other formats are image formats.
+        _ => convert_to_image(&input_image, output),
+    }
+}
