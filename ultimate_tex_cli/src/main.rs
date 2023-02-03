@@ -1,7 +1,8 @@
 use std::{path::Path, str::FromStr};
 
 use clap::Parser;
-use ultimate_tex::{convert_to_dds, convert_to_image, convert_to_nutexb, ImageFile};
+use image_dds::Mipmaps;
+use ultimate_tex::ImageFile;
 
 #[derive(Parser, Debug)]
 #[command(author, version, about = "Smash Ultimate texture converter", long_about = None)]
@@ -39,9 +40,14 @@ fn main() {
         .map(|s| image_dds::ImageFormat::from_str(&s).unwrap())
         .unwrap_or(image_dds::ImageFormat::BC7Unorm);
 
+    let mipmaps = if args.no_mipmaps {
+        Mipmaps::Disabled
+    } else {
+        Mipmaps::GeneratedAutomatic
+    };
+
     // TODO: Resaving with the same extension but different format should still convert.
     // TODO: Default to BC7Unorm for compressed data if no format is specified?
-    // Ignore the format when saving as image.
     match output
         .extension()
         .unwrap()
@@ -50,10 +56,10 @@ fn main() {
         .to_lowercase()
         .as_str()
     {
-        "nutexb" => convert_to_nutexb(&input_image, output, image_format),
-        "bntx" => (),
-        "dds" => convert_to_dds(&input_image, output, image_format),
+        "nutexb" => ultimate_tex::convert_to_nutexb(&input_image, output, image_format, mipmaps),
+        "bntx" => ultimate_tex::convert_to_bntx(&input_image, output, image_format, mipmaps),
+        "dds" => ultimate_tex::convert_to_dds(&input_image, output, image_format, mipmaps),
         // Assume the other formats are image formats.
-        _ => convert_to_image(&input_image, output),
+        _ => ultimate_tex::convert_to_image(&input_image, output),
     }
 }

@@ -3,20 +3,41 @@
 
 use std::path::{Path, PathBuf};
 
-use eframe::egui::{self, Button, ComboBox, Id, ProgressBar, ScrollArea};
-use egui::Grid;
-use egui_extras::{Column, RetainedImage, TableBuilder, TableRow};
+use eframe::egui::{self, Button, ComboBox, Grid, Id, ProgressBar, ScrollArea, Style, Visuals};
+use egui_extras::{Column, TableBuilder, TableRow};
 use image_dds::{ImageFormat, Mipmaps, Quality};
+use rayon::prelude::*;
 use rfd::FileDialog;
 use strum::IntoEnumIterator;
-use ultimate_tex::{convert_to_dds, convert_to_image, convert_to_nutexb, ImageFile, NutexbFile};
+use theme::widgets_dark;
+use ultimate_tex::{
+    convert_to_bntx, convert_to_dds, convert_to_image, convert_to_nutexb, ImageFile, NutexbFile,
+};
+
+mod theme;
 
 #[derive(Default)]
 struct App {
-    use_multicore: bool, // TODO: Default to true?
     is_exporting: bool,
     output_folder: Option<PathBuf>,
     files: Vec<ImageFileSettings>,
+    overrides: FileSettingsOverrides,
+}
+
+struct FileSettingsOverrides {
+    output_file_type: Option<ImageFileType>,
+    output_format: Option<ImageFormat>,
+    mipmaps: Option<Mipmaps>,
+}
+
+impl Default for FileSettingsOverrides {
+    fn default() -> Self {
+        Self {
+            output_file_type: Some(ImageFileType::Png),
+            output_format: Some(ImageFormat::BC7Srgb),
+            mipmaps: Some(Mipmaps::GeneratedAutomatic),
+        }
+    }
 }
 
 // TODO: Move this to the library?
@@ -27,6 +48,12 @@ enum ImageFileType {
     Tiff,
     Nutexb,
     Bntx,
+}
+
+impl Default for ImageFileType {
+    fn default() -> Self {
+        Self::Png
+    }
 }
 
 impl ImageFileType {
@@ -83,6 +110,7 @@ impl ImageFileSettings {
 impl eframe::App for App {
     fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
         // Allow loading files by dragging and dropping onto the window.
+        // TODO: use rayon here as well?
         for file in &ctx.input().raw.dropped_files {
             if let Some(path) = &file.path {
                 let new_file = ImageFileSettings::from_path(path.clone());
@@ -93,7 +121,7 @@ impl eframe::App for App {
         egui::TopBottomPanel::top("menu_panel").show(ctx, |ui| {
             egui::menu::bar(ui, |ui| {
                 ui.menu_button("File", |ui| {
-                    if ui.button("Add File...").clicked() {
+                    if ui.button("Add Files...").clicked() {
                         ui.close_menu();
 
                         if let Some(files) = FileDialog::new()
@@ -103,10 +131,12 @@ impl eframe::App for App {
                             )
                             .pick_files()
                         {
-                            for file in files {
-                                let new_file = ImageFileSettings::from_path(file);
-                                self.files.push(new_file);
-                            }
+                            let start = std::time::Instant::now();
+
+                            let new_files = files.into_par_iter().map(ImageFileSettings::from_path);
+                            self.files.par_extend(new_files);
+
+                            println!("Loaded files in {:?}", start.elapsed());
                         }
                     }
                 });
@@ -141,7 +171,6 @@ impl eframe::App for App {
         egui::TopBottomPanel::top("output_panel").show(ctx, |ui| {
             ui.heading("Output");
 
-            ui.checkbox(&mut self.use_multicore, "Multicore Processing");
             ui.horizontal(|ui| {
                 ui.label("Output Folder");
                 if let Some(output_folder) = &self.output_folder {
@@ -154,13 +183,9 @@ impl eframe::App for App {
                 }
             });
 
-            // TODO: Add presets for common settings like UI, color, non color, etc?
-
-            // Disable the button while exporting to prevent multiple batch jobs.
             // Exporting should only be enabled once an export folder is selected.
-            // TODO: Use Option<PathBuf> instead?
             // TODO: Show on hover why the button is disabled.
-            let can_export = !self.is_exporting && self.output_folder.is_some();
+            let can_export = self.output_folder.is_some();
             if ui
                 .add_enabled_ui(can_export, |ui| {
                     // Make the button larger and easier to click.
@@ -172,9 +197,9 @@ impl eframe::App for App {
                 // TODO: Spawn a thread to process the files.
                 // TODO: Update progress using a callback?
                 if let Some(output_folder) = &self.output_folder {
-                    self.is_exporting = true;
-                    convert_and_export_files(&self.files, output_folder, self.use_multicore);
-                    self.is_exporting = false;
+                    convert_and_export_files(&self.files, output_folder, &self.overrides);
+                    // TODO: Update how many files were exported on the bottom bar?
+                    // TODO: Use log for showing the messages?
                 }
             }
             horizontal_separator_empty(ui);
@@ -195,17 +220,96 @@ impl eframe::App for App {
             ui.heading("Files");
             horizontal_separator_empty(ui);
 
+            if !self.files.is_empty() {
+                settings_presets(ui, &mut self.overrides);
+                horizontal_separator_empty(ui);
+            }
+
             ScrollArea::horizontal()
                 .auto_shrink([false; 2])
                 .show(ui, |ui| {
                     if !self.files.is_empty() {
                         files_table(ui, &mut self.files);
                     } else {
-                        ui.label("Drag and drop image files onto the window or add files using File > Add File...");
+                        ui.label("Drag and drop image files onto the window or add files using File > Add Files...");
                     }
                 });
         });
     }
+}
+
+fn settings_presets(ui: &mut egui::Ui, overrides: &mut FileSettingsOverrides) {
+    // Pad the first column to visually separate the labels.
+    Grid::new("presets_grid")
+        .min_col_width(150.0)
+        .show(ui, |ui| {
+            ui.label("Output Type");
+            ui.horizontal(|ui| {
+                ui.radio_value(
+                    &mut overrides.output_file_type,
+                    Some(ImageFileType::Png),
+                    "PNG",
+                );
+                ui.radio_value(
+                    &mut overrides.output_file_type,
+                    Some(ImageFileType::Dds),
+                    "DDS",
+                );
+                ui.radio_value(
+                    &mut overrides.output_file_type,
+                    Some(ImageFileType::Nutexb),
+                    "Nutexb",
+                );
+                ui.radio_value(
+                    &mut overrides.output_file_type,
+                    Some(ImageFileType::Bntx),
+                    "Bntx",
+                );
+                ui.radio_value(&mut overrides.output_file_type, None, "Custom...");
+            });
+            ui.end_row();
+
+            // Uncompressed formats don't need encoding settings.
+            // TODO: Should this also be enabled for the None case?
+            if let Some(output_file_type) = overrides.output_file_type {
+                if file_supports_compression(output_file_type) {
+                    ui.label("Output Format");
+                    ui.horizontal(|ui| {
+                        ui.radio_value(
+                            &mut overrides.output_format,
+                            Some(ImageFormat::BC7Srgb),
+                            "Color (sRGB) + Alpha",
+                        )
+                        .on_hover_text(
+                            "Recommended for most color textures like col, emi, or diffuse.",
+                        );
+
+                        ui.radio_value(
+                            &mut overrides.output_format,
+                            Some(ImageFormat::BC7Unorm),
+                            "Color (Linear) + Alpha",
+                        )
+                        .on_hover_text("Recommended for nor and prm maps.");
+
+                        ui.radio_value(&mut overrides.output_format, None, "Custom...");
+                    });
+                    ui.end_row();
+
+                    ui.label("Mipmaps");
+                    ui.horizontal(|ui| {
+                        ui.radio_value(
+                            &mut overrides.mipmaps,
+                            Some(Mipmaps::GeneratedAutomatic),
+                            "Enabled",
+                        );
+                        ui.radio_value(&mut overrides.mipmaps, Some(Mipmaps::Disabled), "Disabled");
+                        ui.radio_value(&mut overrides.mipmaps, None, "Custom...");
+                    });
+                }
+            }
+
+            ui.end_row();
+        });
 }
 
 fn optimize_nutexb_files_recursive(root: &Path) {
@@ -227,39 +331,59 @@ fn optimize_nutexb_files_recursive(root: &Path) {
 fn convert_and_export_files(
     files: &[ImageFileSettings],
     output_folder: &Path,
-    use_multicore: bool,
+    overrides: &FileSettingsOverrides,
 ) {
     // TODO: Avoid exporting if this fails?
     std::fs::create_dir_all(output_folder).unwrap();
-    // TODO: report progress?
-    // TODO: Use rayon if use_multicore is enabled.
-    for file in files {
-        let output = output_folder
-            .join(file.file_name_no_extension())
-            .with_extension(file.output_file_type.extension());
 
-        match file.output_file_type {
-            ImageFileType::Dds => convert_to_dds(&file.image_file, &output, file.output_format),
-            ImageFileType::Png => convert_to_image(&file.image_file, &output),
-            ImageFileType::Tiff => convert_to_image(&file.image_file, &output),
-            ImageFileType::Nutexb => {
-                convert_to_nutexb(&file.image_file, &output, file.output_format)
-            }
-            ImageFileType::Bntx => todo!(),
+    let start = std::time::Instant::now();
+
+    // TODO: report progress?
+    files
+        .par_iter()
+        .for_each(|file| convert_and_save_file(output_folder, file, overrides));
+
+    println!("Converted {} files in {:?}", files.len(), start.elapsed());
+}
+
+fn convert_and_save_file(
+    output_folder: &Path,
+    file: &ImageFileSettings,
+    overrides: &FileSettingsOverrides,
+) {
+    // Global overrides take priority over file specific settings if enabled.
+    let file_type = overrides.output_file_type.unwrap_or(file.output_file_type);
+    let output_format = overrides.output_format.unwrap_or(file.output_format);
+    let mipmaps = overrides.mipmaps.unwrap_or(file.mipmaps);
+
+    let output = output_folder
+        .join(file.file_name_no_extension())
+        .with_extension(file_type.extension());
+
+    match file_type {
+        ImageFileType::Dds => convert_to_dds(&file.image_file, &output, output_format, mipmaps),
+        ImageFileType::Png => convert_to_image(&file.image_file, &output),
+        ImageFileType::Tiff => convert_to_image(&file.image_file, &output),
+        ImageFileType::Nutexb => {
+            convert_to_nutexb(&file.image_file, &output, output_format, mipmaps)
         }
+        ImageFileType::Bntx => convert_to_bntx(&file.image_file, &output, output_format, mipmaps),
     }
 }
 
-fn files_table(ui: &mut egui::Ui, files: &mut [ImageFileSettings]) {
+fn files_table(ui: &mut egui::Ui, files: &mut Vec<ImageFileSettings>) {
     let header_column = |header: &mut TableRow, name| {
         header.col(|ui| {
             ui.heading(name);
         })
     };
 
+    let mut file_to_remove = None;
+
     TableBuilder::new(ui)
         .striped(true)
         .cell_layout(egui::Layout::left_to_right(egui::Align::Center))
+        .column(Column::auto())
         .column(Column::auto())
         .column(Column::auto())
         .column(Column::auto())
@@ -281,63 +405,85 @@ fn files_table(ui: &mut egui::Ui, files: &mut [ImageFileSettings]) {
             header_column(&mut header, "Compression");
             header_column(&mut header, "Mipmaps");
         })
-        .body(|mut body| {
-            for (i, file) in files.iter_mut().enumerate() {
-                body.row(20.0, |mut row| {
-                    row.col(|ui| {
-                        ui.label(file.file_name_no_extension());
-                    });
-                    row.col(|ui| {
-                        ui.label(file.extension());
-                    });
-                    row.col(|ui| {
-                        ui.label(file.image_file.image_format().to_string());
-                    });
-
-                    let (width, height, depth) = file.image_file.dimensions();
-                    row.col(|ui| {
-                        ui.label(format!("{width}x{height}x{depth}"));
-                    });
-
-                    row.col(|ui| {
-                        // TODO: make this editable.
-                        ui.label(file.file_name_no_extension());
-                    });
-
-                    row.col(|ui| {
-                        edit_image_file_type(ui, i, &mut file.output_file_type);
-                    });
-
-                    let supports_compression = matches!(
-                        file.output_file_type,
-                        ImageFileType::Dds | ImageFileType::Nutexb | ImageFileType::Bntx
-                    );
-
-                    // The format can't be changed for uncompressed data.
-                    // TODO: Allow bgra or floating point formats?
-                    row.col(|ui| {
-                        if supports_compression {
-                            edit_format(i, ui, &mut file.output_format);
-                        } else {
-                            ui.label(ImageFormat::R8G8B8A8Unorm.to_string());
-                        }
-                    });
-
-                    // These settings only make sense for files supporting compressed data.
-                    row.col(|ui| {
-                        ui.add_enabled_ui(supports_compression, |ui| {
-                            edit_quality(ui, i, &mut file.compression_quality);
-                        });
-                    });
-
-                    row.col(|ui| {
-                        ui.add_enabled_ui(supports_compression, |ui| {
-                            edit_mipmaps(ui, i, &mut file.mipmaps);
-                        });
-                    });
-                });
-            }
+        .body(|body| {
+            files_table_body(files, body, &mut file_to_remove);
         });
+
+    if let Some(i) = file_to_remove {
+        files.remove(i);
+    }
+}
+
+fn files_table_body(
+    files: &mut [ImageFileSettings],
+    mut body: egui_extras::TableBody,
+    file_to_remove: &mut Option<usize>,
+) {
+    for (i, file) in files.iter_mut().enumerate() {
+        body.row(20.0, |mut row| {
+            row.col(|ui| {
+                ui.label(file.file_name_no_extension());
+            });
+            row.col(|ui| {
+                ui.label(file.extension());
+            });
+            row.col(|ui| {
+                ui.label(file.image_file.image_format().to_string());
+            });
+
+            let (width, height, depth) = file.image_file.dimensions();
+            row.col(|ui| {
+                ui.label(format!("{width}x{height}x{depth}"));
+            });
+
+            row.col(|ui| {
+                // TODO: make this editable.
+                ui.label(file.file_name_no_extension());
+            });
+
+            // TODO: Show the override settings if not none.
+            row.col(|ui| {
+                edit_image_file_type(ui, i, &mut file.output_file_type);
+            });
+
+            // The format can't be changed for uncompressed data.
+            // TODO: Allow bgra or floating point formats?
+            let supports_compression = file_supports_compression(file.output_file_type);
+            row.col(|ui| {
+                if supports_compression {
+                    edit_format(i, ui, &mut file.output_format);
+                } else {
+                    ui.label(ImageFormat::R8G8B8A8Unorm.to_string());
+                }
+            });
+
+            // These settings only make sense for files supporting compressed data.
+            row.col(|ui| {
+                ui.add_enabled_ui(supports_compression, |ui| {
+                    edit_quality(ui, i, &mut file.compression_quality);
+                });
+            });
+
+            row.col(|ui| {
+                ui.add_enabled_ui(supports_compression, |ui| {
+                    edit_mipmaps(ui, i, &mut file.mipmaps);
+                });
+            });
+
+            row.col(|ui| {
+                if ui.button("Remove").clicked() {
+                    *file_to_remove = Some(i);
+                }
+            });
+        });
+    }
+}
+
+fn file_supports_compression(file_type: ImageFileType) -> bool {
+    matches!(
+        file_type,
+        ImageFileType::Dds | ImageFileType::Nutexb | ImageFileType::Bntx
+    )
 }
 
 fn edit_image_file_type(ui: &mut egui::Ui, i: usize, file_type: &mut ImageFileType) {
@@ -420,10 +566,20 @@ fn main() {
         ..Default::default()
     };
 
-    // TODO: Modify the themes to be slightly higher contrast.
     eframe::run_native(
         "Ultimate Tex",
         options,
-        Box::new(|_cc| Box::new(App::default())),
+        Box::new(|creation_context| {
+            // Use the dark theme with increased text contrast.
+            let style = Style {
+                visuals: Visuals {
+                    widgets: widgets_dark(),
+                    ..Default::default()
+                },
+                ..Default::default()
+            };
+            creation_context.egui_ctx.set_style(style);
+            Box::<App>::default()
+        }),
     );
 }
