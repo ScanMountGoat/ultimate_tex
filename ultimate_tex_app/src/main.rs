@@ -361,13 +361,17 @@ fn convert_and_save_file(
         .with_extension(file_type.extension());
 
     match file_type {
-        ImageFileType::Dds => convert_to_dds(&file.image_file, &output, output_format, mipmaps),
-        ImageFileType::Png => convert_to_image(&file.image_file, &output),
-        ImageFileType::Tiff => convert_to_image(&file.image_file, &output),
-        ImageFileType::Nutexb => {
-            convert_to_nutexb(&file.image_file, &output, output_format, mipmaps)
+        ImageFileType::Dds => {
+            convert_to_dds(&file.image_file, &output, output_format, mipmaps).unwrap()
         }
-        ImageFileType::Bntx => convert_to_bntx(&file.image_file, &output, output_format, mipmaps),
+        ImageFileType::Png => convert_to_image(&file.image_file, &output).unwrap(),
+        ImageFileType::Tiff => convert_to_image(&file.image_file, &output).unwrap(),
+        ImageFileType::Nutexb => {
+            convert_to_nutexb(&file.image_file, &output, output_format, mipmaps).unwrap()
+        }
+        ImageFileType::Bntx => {
+            convert_to_bntx(&file.image_file, &output, output_format, mipmaps).unwrap()
+        }
     }
 }
 

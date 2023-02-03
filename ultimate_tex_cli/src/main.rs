@@ -35,7 +35,7 @@ fn main() {
 
     let input_image = ImageFile::read(input).unwrap();
 
-    let image_format = args
+    let format = args
         .format
         .map(|s| image_dds::ImageFormat::from_str(&s).unwrap())
         .unwrap_or(image_dds::ImageFormat::BC7Unorm);
@@ -54,10 +54,10 @@ fn main() {
         .to_lowercase()
         .as_str()
     {
-        "nutexb" => ultimate_tex::convert_to_nutexb(&input_image, output, image_format, mipmaps),
-        "bntx" => ultimate_tex::convert_to_bntx(&input_image, output, image_format, mipmaps),
-        "dds" => ultimate_tex::convert_to_dds(&input_image, output, image_format, mipmaps),
+        "nutexb" => ultimate_tex::convert_to_nutexb(&input_image, output, format, mipmaps).unwrap(),
+        "bntx" => ultimate_tex::convert_to_bntx(&input_image, output, format, mipmaps).unwrap(),
+        "dds" => ultimate_tex::convert_to_dds(&input_image, output, format, mipmaps).unwrap(),
         // Assume the other formats are image formats.
-        _ => ultimate_tex::convert_to_image(&input_image, output),
+        _ => ultimate_tex::convert_to_image(&input_image, output).unwrap(),
     }
 }

@@ -19,9 +19,8 @@ impl ImageFile {
         match input
             .as_ref()
             .extension()
-            .unwrap()
-            .to_str()
-            .unwrap()
+            .unwrap_or_default()
+            .to_string_lossy()
             .to_lowercase()
             .as_str()
         {
@@ -37,7 +36,7 @@ impl ImageFile {
     }
 
     pub fn image_format(&self) -> ImageFormat {
-        // TODO: How to handle this?
+        // TODO: Avoid unwrap?
         match self {
             ImageFile::Image(_) => ImageFormat::R8G8B8A8Unorm,
             ImageFile::Dds(dds) => image_dds::dds_image_format(dds).unwrap(),
@@ -92,28 +91,29 @@ fn nutexb_image_format(nutexb: &NutexbFile) -> ImageFormat {
     }
 }
 
-pub fn convert_to_image(input_image: &ImageFile, output: &Path) {
+pub fn convert_to_image(input_image: &ImageFile, output: &Path) -> Result<(), Box<dyn Error>> {
     // TODO: EXR support for BC6H?
 
     match input_image {
-        ImageFile::Image(image) => image.save(output).unwrap(),
+        ImageFile::Image(image) => image.save(output)?,
         ImageFile::Dds(dds) => {
-            let image = image_dds::image_from_dds(dds, 0).unwrap();
-            image.save(output).unwrap();
+            let image = image_dds::image_from_dds(dds, 0)?;
+            image.save(output)?;
         }
         ImageFile::Nutexb(nutexb) => {
             // Use DDS as an intermediate format to handle swizzling.
-            let dds = nutexb::create_dds(nutexb).unwrap();
-            let image = image_dds::image_from_dds(&dds, 0).unwrap();
-            image.save(output).unwrap();
+            let dds = nutexb::create_dds(nutexb)?;
+            let image = image_dds::image_from_dds(&dds, 0)?;
+            image.save(output)?;
         }
         ImageFile::Bntx(bntx) => {
             // Use DDS as an intermediate format to handle swizzling.
-            let dds = bntx::dds::create_dds(bntx).unwrap();
-            let image = image_dds::image_from_dds(&dds, 0).unwrap();
-            image.save(output).unwrap();
+            let dds = bntx::dds::create_dds(bntx)?;
+            let image = image_dds::image_from_dds(&dds, 0)?;
+            image.save(output)?;
         }
     }
+    Ok(())
 }
 
 pub fn convert_to_nutexb(
@@ -121,12 +121,12 @@ pub fn convert_to_nutexb(
     output: &Path,
     image_format: image_dds::ImageFormat,
     mipmaps: image_dds::Mipmaps,
-) {
+) -> Result<(), Box<dyn Error>> {
     // Nutexb files use the file name as the internal name.
     let name = output
         .with_extension("")
         .file_name()
-        .unwrap()
+        .unwrap_or_default()
         .to_string_lossy()
         .to_string();
 
@@ -134,27 +134,27 @@ pub fn convert_to_nutexb(
         ImageFile::Image(image) => {
             // TODO: use args for quality and mipmaps
             let dds =
-                image_dds::dds_from_image(image, image_format, image_dds::Quality::Fast, mipmaps)
-                    .unwrap();
-            let nutexb = NutexbFile::create(&dds, name).unwrap();
-            nutexb.write_to_file(output).unwrap();
+                image_dds::dds_from_image(image, image_format, image_dds::Quality::Fast, mipmaps)?;
+            let nutexb = NutexbFile::create(&dds, name)?;
+            nutexb.write_to_file(output)?;
         }
         ImageFile::Dds(dds) => {
             // TODO: Decode and encode to new format?
             // TODO: Check the mipmaps option here.
-            let nutexb = NutexbFile::create(dds, name).unwrap();
-            nutexb.write_to_file(output).unwrap();
+            let nutexb = NutexbFile::create(dds, name)?;
+            nutexb.write_to_file(output)?;
         }
         ImageFile::Nutexb(nutexb) => {
             // TODO: Decode and encode to new format?
-            nutexb.write_to_file(output).unwrap();
+            nutexb.write_to_file(output)?;
         }
         ImageFile::Bntx(bntx) => {
-            let dds = bntx::dds::create_dds(bntx).unwrap();
-            let nutexb = NutexbFile::create(&dds, name).unwrap();
-            nutexb.write_to_file(output).unwrap();
+            let dds = bntx::dds::create_dds(bntx)?;
+            let nutexb = NutexbFile::create(&dds, name)?;
+            nutexb.write_to_file(output)?;
         }
-    };
+    }
+    Ok(())
 }
 
 pub fn convert_to_bntx(
@@ -162,40 +162,40 @@ pub fn convert_to_bntx(
     output: &Path,
     image_format: image_dds::ImageFormat,
     mipmaps: image_dds::Mipmaps,
-) {
+) -> Result<(), Box<dyn Error>> {
     // Nutexb files use the file name as the internal name.
     let name = output
         .with_extension("")
         .file_name()
-        .unwrap()
+        .unwrap_or_default()
         .to_string_lossy()
         .to_string();
 
     match input_image {
         ImageFile::Image(image) => {
             let dds =
-                image_dds::dds_from_image(image, image_format, image_dds::Quality::Fast, mipmaps)
-                    .unwrap();
-            let bntx = bntx::dds::create_bntx(&name, &dds).unwrap();
-            bntx.save(output).unwrap();
+                image_dds::dds_from_image(image, image_format, image_dds::Quality::Fast, mipmaps)?;
+            let bntx = bntx::dds::create_bntx(&name, &dds)?;
+            bntx.save(output)?;
         }
         ImageFile::Dds(dds) => {
             // TODO: Decode and encode to new format?
             // TODO: Check the mipmaps option here.
-            let bntx = bntx::dds::create_bntx(&name, dds).unwrap();
-            bntx.save(output).unwrap();
+            let bntx = bntx::dds::create_bntx(&name, dds)?;
+            bntx.save(output)?;
         }
         ImageFile::Nutexb(nutexb) => {
-            let dds = nutexb::create_dds(nutexb).unwrap();
+            let dds = nutexb::create_dds(nutexb)?;
             // TODO: Decode and encode to new format?
-            let bntx = bntx::dds::create_bntx(&name, &dds).unwrap();
-            bntx.save(output).unwrap();
+            let bntx = bntx::dds::create_bntx(&name, &dds)?;
+            bntx.save(output)?;
         }
         ImageFile::Bntx(bntx) => {
             // TODO: Decode and encode to new format?
-            bntx.save(output).unwrap();
+            bntx.save(output)?;
         }
-    };
+    }
+    Ok(())
 }
 
 pub fn convert_to_dds(
@@ -203,45 +203,37 @@ pub fn convert_to_dds(
     output: &Path,
     image_format: image_dds::ImageFormat,
     mipmaps: image_dds::Mipmaps,
-) {
+) -> Result<(), Box<dyn Error>> {
     match input_image {
         ImageFile::Image(image) => {
             // TODO: use args for format, quality, and mipmaps
             let dds =
-                image_dds::dds_from_image(image, image_format, image_dds::Quality::Fast, mipmaps)
-                    .unwrap();
-            write_dds(output, &dds);
+                image_dds::dds_from_image(image, image_format, image_dds::Quality::Fast, mipmaps)?;
+            write_dds(output, &dds)?;
         }
         ImageFile::Dds(dds) => {
             // TODO: Decode and encode to new format?
             // Only encode again if the format is different?
             // TODO: Check mipmaps here.
-            write_dds(output, dds);
+            write_dds(output, dds)?;
         }
         ImageFile::Nutexb(nutexb) => {
             // TODO: Decode and encode to new format?
             // TODO: Check mipmaps here.
-            let dds = nutexb::create_dds(nutexb).unwrap();
-            write_dds(output, &dds);
+            let dds = nutexb::create_dds(nutexb)?;
+            write_dds(output, &dds)?;
         }
         ImageFile::Bntx(bntx) => {
-            let dds = bntx::dds::create_dds(bntx).unwrap();
-            write_dds(output, &dds);
+            let dds = bntx::dds::create_dds(bntx)?;
+            write_dds(output, &dds)?;
         }
     };
+
+    Ok(())
 }
 
-fn write_dds(output: &Path, dds: &Dds) {
-    let mut writer = std::io::BufWriter::new(std::fs::File::create(output).unwrap());
-    dds.write(&mut writer).unwrap();
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn it_works() {
-        assert_eq!(2, 1 + 1);
-    }
+fn write_dds(output: &Path, dds: &Dds) -> Result<(), Box<dyn Error>> {
+    let mut writer = std::io::BufWriter::new(std::fs::File::create(output)?);
+    dds.write(&mut writer)?;
+    Ok(())
 }
