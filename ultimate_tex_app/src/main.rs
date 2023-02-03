@@ -1,7 +1,10 @@
 // Hide the console window on Windows in release.
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
-use std::path::{Path, PathBuf};
+use std::{
+    error::Error,
+    path::{Path, PathBuf},
+};
 
 use eframe::egui::{self, Button, ComboBox, Grid, Id, ProgressBar, ScrollArea, Style, Visuals};
 use egui_extras::{Column, TableBuilder, TableRow};
@@ -77,16 +80,16 @@ struct ImageFileSettings {
 }
 
 impl ImageFileSettings {
-    fn from_path(path: PathBuf) -> Self {
-        let image_file = ImageFile::read(&path).unwrap();
-        ImageFileSettings {
+    fn from_path(path: PathBuf) -> Result<Self, Box<dyn Error>> {
+        let image_file = ImageFile::read(&path)?;
+        Ok(ImageFileSettings {
             path,
             image_file,
             output_file_type: ImageFileType::Nutexb,
             output_format: ImageFormat::BC7Unorm,
             compression_quality: Quality::Fast,
             mipmaps: Mipmaps::GeneratedAutomatic,
-        }
+        })
     }
 
     fn file_name_no_extension(&self) -> String {
@@ -94,14 +97,17 @@ impl ImageFileSettings {
         self.path
             .with_extension("")
             .file_name()
-            .unwrap()
+            .unwrap_or_default()
             .to_string_lossy()
             .to_string()
     }
 
     fn extension(&self) -> &str {
-        // TODO: Avoid unwrap.
-        self.path.extension().unwrap().to_str().unwrap()
+        self.path
+            .extension()
+            .unwrap_or_default()
+            .to_str()
+            .unwrap_or_default()
     }
 }
 
@@ -111,8 +117,9 @@ impl eframe::App for App {
         // TODO: use rayon here as well?
         for file in &ctx.input().raw.dropped_files {
             if let Some(path) = &file.path {
-                let new_file = ImageFileSettings::from_path(path.clone());
-                self.files.push(new_file);
+                if let Ok(new_file) = ImageFileSettings::from_path(path.clone()) {
+                    self.files.push(new_file);
+                }
             }
         }
 
@@ -131,7 +138,7 @@ impl eframe::App for App {
                         {
                             let start = std::time::Instant::now();
 
-                            let new_files = files.into_par_iter().map(ImageFileSettings::from_path);
+                            let new_files = files.into_par_iter().filter_map(|f| ImageFileSettings::from_path(f).ok());
                             self.files.par_extend(new_files);
 
                             println!("Loaded files in {:?}", start.elapsed());
@@ -323,7 +330,9 @@ fn optimize_nutexb_files_recursive(root: &Path) {
         if let Ok(mut nutexb) = NutexbFile::read_from_file(entry.path()) {
             nutexb.optimize_size();
             // TODO: Avoid unwrap.
-            nutexb.write_to_file(entry.path()).unwrap();
+            if let Err(e) = nutexb.write_to_file(entry.path()) {
+                // TODO: log errors
+            }
         }
     }
 }
@@ -333,24 +342,26 @@ fn convert_and_export_files(
     output_folder: &Path,
     overrides: &FileSettingsOverrides,
 ) {
-    // TODO: Avoid exporting if this fails?
-    std::fs::create_dir_all(output_folder).unwrap();
+    // TODO: Log an error if creating the output directory fails.
+    if std::fs::create_dir_all(output_folder).is_ok() {
+        let start = std::time::Instant::now();
 
-    let start = std::time::Instant::now();
+        // TODO: report progress?
+        files.par_iter().for_each(|file| {
+            if let Err(e) = convert_and_save_file(output_folder, file, overrides) {
+                // TODO: Log errors
+            }
+        });
 
-    // TODO: report progress?
-    files
-        .par_iter()
-        .for_each(|file| convert_and_save_file(output_folder, file, overrides));
-
-    println!("Converted {} files in {:?}", files.len(), start.elapsed());
+        println!("Converted {} files in {:?}", files.len(), start.elapsed());
+    }
 }
 
 fn convert_and_save_file(
     output_folder: &Path,
     file: &ImageFileSettings,
     overrides: &FileSettingsOverrides,
-) {
+) -> Result<(), Box<dyn Error>> {
     // Global overrides take priority over file specific settings if enabled.
     let file_type = overrides.output_file_type.unwrap_or(file.output_file_type);
     let output_format = overrides.output_format.unwrap_or(file.output_format);
@@ -361,18 +372,15 @@ fn convert_and_save_file(
         .with_extension(file_type.extension());
 
     match file_type {
-        ImageFileType::Dds => {
-            convert_to_dds(&file.image_file, &output, output_format, mipmaps).unwrap()
-        }
-        ImageFileType::Png => convert_to_image(&file.image_file, &output).unwrap(),
-        ImageFileType::Tiff => convert_to_image(&file.image_file, &output).unwrap(),
+        ImageFileType::Dds => convert_to_dds(&file.image_file, &output, output_format, mipmaps)?,
+        ImageFileType::Png => convert_to_image(&file.image_file, &output)?,
+        ImageFileType::Tiff => convert_to_image(&file.image_file, &output)?,
         ImageFileType::Nutexb => {
-            convert_to_nutexb(&file.image_file, &output, output_format, mipmaps).unwrap()
+            convert_to_nutexb(&file.image_file, &output, output_format, mipmaps)?
         }
-        ImageFileType::Bntx => {
-            convert_to_bntx(&file.image_file, &output, output_format, mipmaps).unwrap()
-        }
+        ImageFileType::Bntx => convert_to_bntx(&file.image_file, &output, output_format, mipmaps)?,
     }
+    Ok(())
 }
 
 fn files_table(
