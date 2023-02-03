@@ -6,7 +6,7 @@ use std::{
     path::{Path, PathBuf},
 };
 
-use eframe::egui::{self, Button, ComboBox, Grid, Id, ProgressBar, ScrollArea, Style, Visuals};
+use eframe::egui::{self, Button, ComboBox, Grid, Id, ScrollArea, Style, Visuals};
 use egui_extras::{Column, TableBuilder, TableRow};
 use image_dds::{ImageFormat, Mipmaps, Quality};
 use rayon::prelude::*;
@@ -23,8 +23,11 @@ mod theme;
 struct App {
     is_exporting: bool,
     output_folder: Option<PathBuf>,
+    save_to_original_folder: bool,
     files: Vec<ImageFileSettings>,
     overrides: FileSettingsOverrides,
+    // TODO: Add proper logging.
+    message_text: String,
 }
 
 struct FileSettingsOverrides {
@@ -176,17 +179,21 @@ impl eframe::App for App {
         egui::TopBottomPanel::top("output_panel").show(ctx, |ui| {
             ui.heading("Output");
 
-            ui.horizontal(|ui| {
-                ui.label("Output Folder");
-                if let Some(output_folder) = &self.output_folder {
-                    ui.label(output_folder.to_string_lossy());
-                }
-                if ui.button("Open...").clicked() {
-                    if let Some(folder) = FileDialog::new().pick_folder() {
-                        self.output_folder = Some(folder);
+            ui.checkbox(&mut self.save_to_original_folder, "Save to Original Folder");
+
+            if !self.save_to_original_folder {
+                ui.horizontal(|ui| {
+                    ui.label("Output Location");
+                    if let Some(output_folder) = &self.output_folder {
+                        ui.label(output_folder.to_string_lossy());
                     }
-                }
-            });
+                    if ui.button("Open...").clicked() {
+                        if let Some(folder) = FileDialog::new().pick_folder() {
+                            self.output_folder = Some(folder);
+                        }
+                    }
+                });
+            }
 
             // Exporting should only be enabled once an export folder is selected.
             let can_export = self.output_folder.is_some();
@@ -202,8 +209,17 @@ impl eframe::App for App {
                 // TODO: Spawn a thread to process the files.
                 // TODO: Update progress using a callback?
                 if let Some(output_folder) = &self.output_folder {
-                    convert_and_export_files(&self.files, output_folder, &self.overrides);
-                    // TODO: Update how many files were exported on the bottom bar?
+                    if let Ok(count) = convert_and_export_files(
+                        &self.files,
+                        output_folder,
+                        &self.overrides,
+                        self.save_to_original_folder,
+                    ) {
+                        self.message_text = format!(
+                            "Successfully converted {count} of {} file(s)",
+                            self.files.len()
+                        );
+                    }
                     // TODO: Use log for showing the messages?
                 }
             }
@@ -211,14 +227,8 @@ impl eframe::App for App {
         });
 
         egui::TopBottomPanel::bottom("progress_panel").show(ctx, |ui| {
-            // Only allow a single export operation in progress at a time.
-            if self.is_exporting {
-                // TODO: Track progress for exporting.
-                ui.horizontal(|ui| {
-                    ui.label("Processing 4 of 20 files...");
-                    ui.add(ProgressBar::new(4.0 / 20.0));
-                });
-            }
+            ui.label(&self.message_text);
+            // TODO: Track progress for exporting.
         });
 
         egui::CentralPanel::default().show(ctx, |ui| {
@@ -341,20 +351,37 @@ fn convert_and_export_files(
     files: &[ImageFileSettings],
     output_folder: &Path,
     overrides: &FileSettingsOverrides,
-) {
+    save_to_original_folder: bool,
+) -> Result<usize, Box<dyn Error>> {
     // TODO: Log an error if creating the output directory fails.
-    if std::fs::create_dir_all(output_folder).is_ok() {
-        let start = std::time::Instant::now();
+    std::fs::create_dir_all(output_folder)?;
 
-        // TODO: report progress?
-        files.par_iter().for_each(|file| {
-            if let Err(e) = convert_and_save_file(output_folder, file, overrides) {
-                // TODO: Log errors
+    let start = std::time::Instant::now();
+
+    // TODO: report progress?
+    let count = files
+        .par_iter()
+        .map(|file| {
+            // TODO: find a simpler way to write this.
+            if let Some(file_output_folder) = if save_to_original_folder {
+                file.path.parent()
+            } else {
+                Some(output_folder)
+            } {
+                // TODO: Log errors.
+                match convert_and_save_file(file_output_folder, file, overrides) {
+                    Ok(_) => 1,
+                    Err(_) => 0,
+                }
+            } else {
+                0
             }
-        });
+        })
+        .sum();
 
-        println!("Converted {} files in {:?}", files.len(), start.elapsed());
-    }
+    println!("Converted {} files in {:?}", files.len(), start.elapsed());
+
+    Ok(count)
 }
 
 fn convert_and_save_file(
