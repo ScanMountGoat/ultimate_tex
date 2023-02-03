@@ -40,7 +40,6 @@ impl Default for FileSettingsOverrides {
     }
 }
 
-// TODO: Move this to the library?
 #[derive(PartialEq, Clone, Copy, strum::Display, strum::EnumIter)]
 enum ImageFileType {
     Dds,
@@ -68,11 +67,10 @@ impl ImageFileType {
     }
 }
 
-// TODO: Store an ImageFile instead?
 struct ImageFileSettings {
     path: PathBuf,
     image_file: ImageFile,
-    output_file_type: ImageFileType, // TODO: Should this be a string for the extension?
+    output_file_type: ImageFileType,
     output_format: ImageFormat,
     compression_quality: Quality,
     mipmaps: image_dds::Mipmaps,
@@ -127,7 +125,7 @@ impl eframe::App for App {
                         if let Some(files) = FileDialog::new()
                             .add_filter(
                                 "image files",
-                                &["png", "tiff", "nutexb", "bntx", "jpeg", "jpg"],
+                                &["png", "tiff", "nutexb", "bntx", "jpeg", "jpg", "dds"],
                             )
                             .pick_files()
                         {
@@ -184,7 +182,6 @@ impl eframe::App for App {
             });
 
             // Exporting should only be enabled once an export folder is selected.
-            // TODO: Show on hover why the button is disabled.
             let can_export = self.output_folder.is_some();
             if ui
                 .add_enabled_ui(can_export, |ui| {
@@ -192,6 +189,7 @@ impl eframe::App for App {
                     ui.add_sized(egui::vec2(80.0, 30.0), Button::new("Export"))
                 })
                 .inner
+                .on_disabled_hover_text("Select an output folder.")
                 .clicked()
             {
                 // TODO: Spawn a thread to process the files.
@@ -229,7 +227,7 @@ impl eframe::App for App {
                 .auto_shrink([false; 2])
                 .show(ui, |ui| {
                     if !self.files.is_empty() {
-                        files_table(ui, &mut self.files);
+                        files_table(ui, &mut self.files, &self.overrides);
                     } else {
                         ui.label("Drag and drop image files onto the window or add files using File > Add Files...");
                     }
@@ -270,42 +268,45 @@ fn settings_presets(ui: &mut egui::Ui, overrides: &mut FileSettingsOverrides) {
             ui.end_row();
 
             // Uncompressed formats don't need encoding settings.
-            // TODO: Should this also be enabled for the None case?
-            if let Some(output_file_type) = overrides.output_file_type {
-                if file_supports_compression(output_file_type) {
-                    ui.label("Output Format");
-                    ui.horizontal(|ui| {
-                        ui.radio_value(
-                            &mut overrides.output_format,
-                            Some(ImageFormat::BC7Srgb),
-                            "Color (sRGB) + Alpha",
-                        )
-                        .on_hover_text(
-                            "Recommended for most color textures like col, emi, or diffuse.",
-                        );
+            // Allow these settings when selecting formats manually.
+            let show_settings = overrides
+                .output_file_type
+                .map(file_supports_compression)
+                .unwrap_or(true);
 
-                        ui.radio_value(
-                            &mut overrides.output_format,
-                            Some(ImageFormat::BC7Unorm),
-                            "Color (Linear) + Alpha",
-                        )
-                        .on_hover_text("Recommended for nor and prm maps.");
+            if show_settings {
+                ui.label("Output Format");
+                ui.horizontal(|ui| {
+                    ui.radio_value(
+                        &mut overrides.output_format,
+                        Some(ImageFormat::BC7Srgb),
+                        "Color (sRGB) + Alpha",
+                    )
+                    .on_hover_text(
+                        "Recommended for most color textures like col, emi, or diffuse.",
+                    );
 
-                        ui.radio_value(&mut overrides.output_format, None, "Custom...");
-                    });
-                    ui.end_row();
+                    ui.radio_value(
+                        &mut overrides.output_format,
+                        Some(ImageFormat::BC7Unorm),
+                        "Color (Linear) + Alpha",
+                    )
+                    .on_hover_text("Recommended for nor and prm maps.");
 
-                    ui.label("Mipmaps");
-                    ui.horizontal(|ui| {
-                        ui.radio_value(
-                            &mut overrides.mipmaps,
-                            Some(Mipmaps::GeneratedAutomatic),
-                            "Enabled",
-                        );
-                        ui.radio_value(&mut overrides.mipmaps, Some(Mipmaps::Disabled), "Disabled");
-                        ui.radio_value(&mut overrides.mipmaps, None, "Custom...");
-                    });
-                }
+                    ui.radio_value(&mut overrides.output_format, None, "Custom...");
+                });
+                ui.end_row();
+
+                ui.label("Mipmaps");
+                ui.horizontal(|ui| {
+                    ui.radio_value(
+                        &mut overrides.mipmaps,
+                        Some(Mipmaps::GeneratedAutomatic),
+                        "Enabled",
+                    );
+                    ui.radio_value(&mut overrides.mipmaps, Some(Mipmaps::Disabled), "Disabled");
+                    ui.radio_value(&mut overrides.mipmaps, None, "Custom...");
+                });
             }
 
             ui.end_row();
@@ -317,7 +318,6 @@ fn optimize_nutexb_files_recursive(root: &Path) {
     for entry in globwalk::GlobWalkerBuilder::from_patterns(root, &["*.{nutexb}"])
         .build()
         .unwrap()
-        .into_iter()
         .filter_map(Result::ok)
     {
         if let Ok(mut nutexb) = NutexbFile::read_from_file(entry.path()) {
@@ -371,7 +371,11 @@ fn convert_and_save_file(
     }
 }
 
-fn files_table(ui: &mut egui::Ui, files: &mut Vec<ImageFileSettings>) {
+fn files_table(
+    ui: &mut egui::Ui,
+    files: &mut Vec<ImageFileSettings>,
+    overrides: &FileSettingsOverrides,
+) {
     let header_column = |header: &mut TableRow, name| {
         header.col(|ui| {
             ui.heading(name);
@@ -406,7 +410,7 @@ fn files_table(ui: &mut egui::Ui, files: &mut Vec<ImageFileSettings>) {
             header_column(&mut header, "Mipmaps");
         })
         .body(|body| {
-            files_table_body(files, body, &mut file_to_remove);
+            files_table_body(files, body, &mut file_to_remove, overrides);
         });
 
     if let Some(i) = file_to_remove {
@@ -418,6 +422,7 @@ fn files_table_body(
     files: &mut [ImageFileSettings],
     mut body: egui_extras::TableBody,
     file_to_remove: &mut Option<usize>,
+    overrides: &FileSettingsOverrides,
 ) {
     for (i, file) in files.iter_mut().enumerate() {
         body.row(20.0, |mut row| {
@@ -441,19 +446,26 @@ fn files_table_body(
                 ui.label(file.file_name_no_extension());
             });
 
-            // TODO: Show the override settings if not none.
             row.col(|ui| {
-                edit_image_file_type(ui, i, &mut file.output_file_type);
+                if let Some(file_type) = overrides.output_file_type {
+                    ui.label(file_type.to_string());
+                } else {
+                    edit_image_file_type(ui, i, &mut file.output_file_type);
+                }
             });
 
             // The format can't be changed for uncompressed data.
-            // TODO: Allow bgra or floating point formats?
-            let supports_compression = file_supports_compression(file.output_file_type);
+            let output_file_type = overrides.output_file_type.unwrap_or(file.output_file_type);
+            let supports_compression = file_supports_compression(output_file_type);
+
             row.col(|ui| {
-                if supports_compression {
-                    edit_format(i, ui, &mut file.output_format);
-                } else {
+                if !supports_compression {
+                    // TODO: Allow floating point formats?
                     ui.label(ImageFormat::R8G8B8A8Unorm.to_string());
+                } else if let Some(output_format) = overrides.output_format {
+                    ui.label(output_format.to_string());
+                } else {
+                    edit_format(i, ui, &mut file.output_format);
                 }
             });
 
@@ -466,7 +478,11 @@ fn files_table_body(
 
             row.col(|ui| {
                 ui.add_enabled_ui(supports_compression, |ui| {
-                    edit_mipmaps(ui, i, &mut file.mipmaps);
+                    if let Some(mipmaps) = overrides.mipmaps {
+                        ui.label(mipmaps_text(mipmaps));
+                    } else {
+                        edit_mipmaps(ui, i, &mut file.mipmaps);
+                    }
                 });
             });
 

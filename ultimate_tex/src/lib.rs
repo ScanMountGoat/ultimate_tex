@@ -14,8 +14,6 @@ pub enum ImageFile {
     Bntx(BntxFile),
 }
 
-// TODO: Add a save method?
-// TODO: Add methods for dimensions, format, etc?
 impl ImageFile {
     pub fn read<P: AsRef<Path>>(input: P) -> Result<Self, Box<dyn Error>> {
         match input
@@ -41,9 +39,9 @@ impl ImageFile {
     pub fn image_format(&self) -> ImageFormat {
         // TODO: How to handle this?
         match self {
-            ImageFile::Image(_) => ImageFormat::R8G8B8A8Unorm, // TODO: Should this be srgb?
-            ImageFile::Dds(dds) => image_dds::dds_image_format(dds).unwrap(), // TODO: make this part of image_dds
-            ImageFile::Nutexb(nutexb) => nutexb_image_format(nutexb), // TODO: impl From<NutexbFormat>?
+            ImageFile::Image(_) => ImageFormat::R8G8B8A8Unorm,
+            ImageFile::Dds(dds) => image_dds::dds_image_format(dds).unwrap(),
+            ImageFile::Nutexb(nutexb) => nutexb_image_format(nutexb),
             ImageFile::Bntx(bntx) => bntx_image_format(bntx),
         }
     }
@@ -175,7 +173,6 @@ pub fn convert_to_bntx(
 
     match input_image {
         ImageFile::Image(image) => {
-            // TODO: use args for quality and mipmaps
             let dds =
                 image_dds::dds_from_image(image, image_format, image_dds::Quality::Fast, mipmaps)
                     .unwrap();

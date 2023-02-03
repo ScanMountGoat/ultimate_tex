@@ -46,8 +46,6 @@ fn main() {
         Mipmaps::GeneratedAutomatic
     };
 
-    // TODO: Resaving with the same extension but different format should still convert.
-    // TODO: Default to BC7Unorm for compressed data if no format is specified?
     match output
         .extension()
         .unwrap()
