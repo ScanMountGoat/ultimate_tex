@@ -30,6 +30,7 @@ struct App {
 }
 
 struct FileSettingsOverrides {
+    // TODO: How to handle lossless DDS conversions?
     output_file_type: Option<ImageFileType>,
     output_format: Option<ImageFormat>,
     mipmaps: Option<Mipmaps>,
@@ -169,7 +170,10 @@ impl eframe::App for App {
                 ui.menu_button("Help", |ui| {
                     if ui.button("Wiki").clicked() {
                         ui.close_menu();
-                        // TODO: Open a wiki page?
+
+                        if let Err(_) = open::that("https://github.com/ScanMountGoat/ultimate_tex/wiki") {
+                            // TODO: log errors
+                        }
                     }
                 });
             })
