@@ -196,7 +196,7 @@ impl eframe::App for App {
             }
 
             // Exporting should only be enabled once an export folder is selected.
-            let can_export = self.output_folder.is_some();
+            let can_export = self.output_folder.is_some() || self.save_to_original_folder;
             if ui
                 .add_enabled_ui(can_export, |ui| {
                     // Make the button larger and easier to click.
