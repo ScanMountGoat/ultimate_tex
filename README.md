@@ -2,7 +2,7 @@
 Texture conversion utilities for Smash Ultimate. Report any bugs or request new features in [issues](https://github.com/ScanMountGoat/ultimate_tex/issues).
 
 ## ultimate_tex_app
-A desktop application for batch converting texture files.
+A desktop application for batch converting texture files. See the [wiki](https://github.com/ScanMountGoat/ultimate_tex/wiki) for usage instructions.
 
 ![image](https://user-images.githubusercontent.com/23301691/216787389-93b1484e-1560-4f45-8e9a-b7b60b19cdf4.png)
 
@@ -27,7 +27,8 @@ A library for conversion functionality shared between the GUI and CLI programs.
 
 ## Building
 With a newer version of the Rust toolchain installed, run `cargo build --release`. 
-Don't forget the `--release` since debug builds in Rust will perform poorly!
+Don't forget the `--release` since debug builds in Rust will run slowly. 
+The image_dds crate compiles C/C++ code for the encoders and decoders and requires C/C++ tooling installed.
 
 ## Credits
 - [nutexb](https://github.com/jam1garner/nutexb)
