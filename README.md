@@ -2,9 +2,10 @@
 Texture conversion utilities for Smash Ultimate.
 
 ## ultimate_tex_app
+A desktop application for batch converting texture files.
+
 ![image](https://user-images.githubusercontent.com/23301691/216787389-93b1484e-1560-4f45-8e9a-b7b60b19cdf4.png)
 
-A desktop application for batch converting texture files.
 
 ## ultimate_tex_cli
 A commandline program for converting a single texture file.
