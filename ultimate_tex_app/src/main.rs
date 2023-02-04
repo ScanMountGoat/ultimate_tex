@@ -30,7 +30,6 @@ struct App {
 }
 
 struct FileSettingsOverrides {
-    // TODO: How to handle lossless DDS conversions?
     output_file_type: Option<ImageFileType>,
     output_format: Option<ImageFormat>,
     mipmaps: Option<Mipmaps>,
@@ -38,9 +37,10 @@ struct FileSettingsOverrides {
 
 impl Default for FileSettingsOverrides {
     fn default() -> Self {
+        // Default to a custom output format to encourage lossless conversions.
         Self {
             output_file_type: Some(ImageFileType::Png),
-            output_format: Some(ImageFormat::BC7Srgb),
+            output_format: None,
             mipmaps: Some(Mipmaps::GeneratedAutomatic),
         }
     }
@@ -85,11 +85,13 @@ struct ImageFileSettings {
 impl ImageFileSettings {
     fn from_path(path: PathBuf) -> Result<Self, Box<dyn Error>> {
         let image_file = ImageFile::read(&path)?;
+        // Default to the input format to encourage lossless conversions.
+        let output_format = image_file.image_format();
         Ok(ImageFileSettings {
             path,
             image_file,
             output_file_type: ImageFileType::Nutexb,
-            output_format: ImageFormat::BC7Unorm,
+            output_format,
             compression_quality: Quality::Fast,
             mipmaps: Mipmaps::GeneratedAutomatic,
         })
@@ -146,6 +148,12 @@ impl eframe::App for App {
 
                             println!("Loaded files in {:?}", start.elapsed());
                         }
+                    }
+
+                    if ui.button("Clear Files").clicked() {
+                        ui.close_menu();
+
+                        self.files.clear();
                     }
                 });
 
@@ -211,20 +219,18 @@ impl eframe::App for App {
             {
                 // TODO: Spawn a thread to process the files.
                 // TODO: Update progress using a callback?
-                if let Some(output_folder) = &self.output_folder {
-                    if let Ok(count) = convert_and_export_files(
-                        &self.files,
-                        output_folder,
-                        &self.overrides,
-                        self.save_to_original_folder,
-                    ) {
-                        self.message_text = format!(
-                            "Successfully converted {count} of {} file(s)",
-                            self.files.len()
-                        );
-                    }
-                    // TODO: Use log for showing the messages?
+                if let Ok(count) = convert_and_export_files(
+                    &self.files,
+                    &self.output_folder,
+                    &self.overrides,
+                    self.save_to_original_folder,
+                ) {
+                    self.message_text = format!(
+                        "Successfully converted {count} of {} file(s)",
+                        self.files.len()
+                    );
                 }
+                // TODO: Use log for showing the messages?
             }
             horizontal_separator_empty(ui);
         });
@@ -352,29 +358,34 @@ fn optimize_nutexb_files_recursive(root: &Path) {
 
 fn convert_and_export_files(
     files: &[ImageFileSettings],
-    output_folder: &Path,
+    output_folder: &Option<PathBuf>,
     overrides: &FileSettingsOverrides,
     save_to_original_folder: bool,
 ) -> Result<usize, Box<dyn Error>> {
     // TODO: Log an error if creating the output directory fails.
-    std::fs::create_dir_all(output_folder)?;
+    if let Some(output_folder) = output_folder {
+        std::fs::create_dir_all(output_folder)?;
+    }
 
     let start = std::time::Instant::now();
 
     // TODO: report progress?
     let count = files
-        .par_iter()
+        .iter()
         .map(|file| {
             // TODO: find a simpler way to write this.
             if let Some(file_output_folder) = if save_to_original_folder {
-                file.path.parent()
+                file.path.parent().map(PathBuf::from)
             } else {
-                Some(output_folder)
+                output_folder.to_owned()
             } {
-                // TODO: Log errors.
-                match convert_and_save_file(file_output_folder, file, overrides) {
+                match convert_and_save_file(&file_output_folder, file, overrides) {
                     Ok(_) => 1,
-                    Err(_) => 0,
+                    Err(e) => {
+                        // TODO: Log errors.
+                        println!("Error converting {:?}: {e}", file.path);
+                        0
+                    }
                 }
             } else {
                 0
