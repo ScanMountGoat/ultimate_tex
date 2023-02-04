@@ -8,15 +8,15 @@ A desktop application for batch converting texture files.
 A commandline program for converting a single texture file.
 
 ### Examples
-DDS:
+DDS:  
 `cargo run -p ultimate_tex_cli --release -- cat.jpeg cat.dds --format BC1Srgb`  
 `cargo run -p ultimate_tex_cli --release -- cat.dds cat.tiff`  
 
-Nutexb:
+Nutexb:  
 `cargo run -p ultimate_tex_cli --release -- def_mario_001_col.nutexb img.dds`  
 `cargo run -p ultimate_tex_cli --release -- img.dds def_mario_001_col.nutexb --format BC7Srgb`  
 
-Bntx:
+Bntx:  
 `cargo run -p ultimate_tex_cli --release -- chara_0_captain_01.bntx img.png`  
 `cargo run -p ultimate_tex_cli --release -- img.png chara_0_captain_01.bntx --format BC7Unorm --no-mipmaps`  
 
