@@ -120,6 +120,7 @@ pub fn convert_to_nutexb(
     input_image: &ImageFile,
     output: &Path,
     image_format: image_dds::ImageFormat,
+    quality: image_dds::Quality,
     mipmaps: image_dds::Mipmaps,
 ) -> Result<(), Box<dyn Error>> {
     // Nutexb files use the file name as the internal name.
@@ -130,27 +131,28 @@ pub fn convert_to_nutexb(
         .to_string_lossy()
         .to_string();
 
+    // Use image_dds to encode to a new format if necessary.
     match input_image {
         ImageFile::Image(image) => {
-            // TODO: use args for quality and mipmaps
-            let dds =
-                image_dds::dds_from_image(image, image_format, image_dds::Quality::Fast, mipmaps)?;
+            let dds = image_dds::dds_from_image(image, image_format, quality, mipmaps)?;
             let nutexb = NutexbFile::create(&dds, name)?;
             nutexb.write_to_file(output)?;
         }
         ImageFile::Dds(dds) => {
-            // TODO: Decode and encode to new format?
-            // TODO: Check the mipmaps option here.
-            let nutexb = NutexbFile::create(dds, name)?;
+            let new_dds = encode_dds(&dds, image_format, quality, mipmaps)?;
+            let nutexb = NutexbFile::create(&new_dds, name)?;
             nutexb.write_to_file(output)?;
         }
         ImageFile::Nutexb(nutexb) => {
-            // TODO: Decode and encode to new format?
-            nutexb.write_to_file(output)?;
+            let dds = nutexb::create_dds(nutexb)?;
+            let new_dds = encode_dds(&dds, image_format, quality, mipmaps)?;
+            let new_nutexb = NutexbFile::create(&new_dds, nutexb.footer.string.to_string())?;
+            new_nutexb.write_to_file(output)?;
         }
         ImageFile::Bntx(bntx) => {
             let dds = bntx::dds::create_dds(bntx)?;
-            let nutexb = NutexbFile::create(&dds, name)?;
+            let new_dds = encode_dds(&dds, image_format, quality, mipmaps)?;
+            let nutexb = NutexbFile::create(&new_dds, name)?;
             nutexb.write_to_file(output)?;
         }
     }
@@ -161,6 +163,7 @@ pub fn convert_to_bntx(
     input_image: &ImageFile,
     output: &Path,
     image_format: image_dds::ImageFormat,
+    quality: image_dds::Quality,
     mipmaps: image_dds::Mipmaps,
 ) -> Result<(), Box<dyn Error>> {
     // Nutexb files use the file name as the internal name.
@@ -173,26 +176,26 @@ pub fn convert_to_bntx(
 
     match input_image {
         ImageFile::Image(image) => {
-            let dds =
-                image_dds::dds_from_image(image, image_format, image_dds::Quality::Fast, mipmaps)?;
+            let dds = image_dds::dds_from_image(image, image_format, quality, mipmaps)?;
             let bntx = bntx::dds::create_bntx(&name, &dds)?;
             bntx.save(output)?;
         }
         ImageFile::Dds(dds) => {
-            // TODO: Decode and encode to new format?
-            // TODO: Check the mipmaps option here.
-            let bntx = bntx::dds::create_bntx(&name, dds)?;
+            let new_dds = encode_dds(&dds, image_format, quality, mipmaps)?;
+            let bntx = bntx::dds::create_bntx(&name, &new_dds)?;
             bntx.save(output)?;
         }
         ImageFile::Nutexb(nutexb) => {
             let dds = nutexb::create_dds(nutexb)?;
-            // TODO: Decode and encode to new format?
-            let bntx = bntx::dds::create_bntx(&name, &dds)?;
+            let new_dds = encode_dds(&dds, image_format, quality, mipmaps)?;
+            let bntx = bntx::dds::create_bntx(&name, &new_dds)?;
             bntx.save(output)?;
         }
         ImageFile::Bntx(bntx) => {
-            // TODO: Decode and encode to new format?
-            bntx.save(output)?;
+            let dds = bntx::dds::create_dds(bntx)?;
+            let new_dds = encode_dds(&dds, image_format, quality, mipmaps)?;
+            let new_bntx = bntx::dds::create_bntx(&name, &new_dds)?;
+            new_bntx.save(output)?;
         }
     }
     Ok(())
@@ -202,34 +205,46 @@ pub fn convert_to_dds(
     input_image: &ImageFile,
     output: &Path,
     image_format: image_dds::ImageFormat,
+    quality: image_dds::Quality,
     mipmaps: image_dds::Mipmaps,
 ) -> Result<(), Box<dyn Error>> {
     match input_image {
         ImageFile::Image(image) => {
-            // TODO: use args for format, quality, and mipmaps
-            let dds =
-                image_dds::dds_from_image(image, image_format, image_dds::Quality::Fast, mipmaps)?;
+            let dds = image_dds::dds_from_image(image, image_format, quality, mipmaps)?;
             write_dds(output, &dds)?;
         }
         ImageFile::Dds(dds) => {
-            // TODO: Decode and encode to new format?
-            // Only encode again if the format is different?
-            // TODO: Check mipmaps here.
-            write_dds(output, dds)?;
+            let new_dds = encode_dds(dds, image_format, quality, mipmaps)?;
+            write_dds(output, &new_dds)?;
         }
         ImageFile::Nutexb(nutexb) => {
-            // TODO: Decode and encode to new format?
-            // TODO: Check mipmaps here.
             let dds = nutexb::create_dds(nutexb)?;
-            write_dds(output, &dds)?;
+            let new_dds = encode_dds(&dds, image_format, quality, mipmaps)?;
+            write_dds(output, &new_dds)?;
         }
         ImageFile::Bntx(bntx) => {
             let dds = bntx::dds::create_dds(bntx)?;
-            write_dds(output, &dds)?;
+            let new_dds = encode_dds(&dds, image_format, quality, mipmaps)?;
+            write_dds(output, &new_dds)?;
         }
     };
 
     Ok(())
+}
+
+fn encode_dds(
+    dds: &Dds,
+    image_format: ImageFormat,
+    quality: image_dds::Quality,
+    mipmaps: image_dds::Mipmaps,
+) -> Result<Dds, Box<dyn Error>> {
+    // Decode and encode to the desired format.
+    // This also handles adjusting the number of mipmaps.
+    // TODO: Avoid encoding again if the input and output formats are the same?
+    // TODO: Copy the dds data while respecting the mipmap count?
+    let surface = image_dds::decode_surface_rgba8_from_dds(dds)?;
+    let new_dds = image_dds::dds_from_surface_rgba8(surface, image_format, quality, mipmaps)?;
+    Ok(new_dds)
 }
 
 fn write_dds(output: &Path, dds: &Dds) -> Result<(), Box<dyn Error>> {

@@ -40,6 +40,8 @@ fn main() {
         .map(|s| image_dds::ImageFormat::from_str(&s).unwrap())
         .unwrap_or(image_dds::ImageFormat::BC7Unorm);
 
+    let quality = image_dds::Quality::Fast;
+
     let mipmaps = if args.no_mipmaps {
         Mipmaps::Disabled
     } else {
@@ -54,9 +56,9 @@ fn main() {
         .to_lowercase()
         .as_str()
     {
-        "nutexb" => ultimate_tex::convert_to_nutexb(&input_image, output, format, mipmaps).unwrap(),
-        "bntx" => ultimate_tex::convert_to_bntx(&input_image, output, format, mipmaps).unwrap(),
-        "dds" => ultimate_tex::convert_to_dds(&input_image, output, format, mipmaps).unwrap(),
+        "nutexb" => ultimate_tex::convert_to_nutexb(&input_image, output, format, quality, mipmaps).unwrap(),
+        "bntx" => ultimate_tex::convert_to_bntx(&input_image, output, format, quality, mipmaps).unwrap(),
+        "dds" => ultimate_tex::convert_to_dds(&input_image, output, format, quality, mipmaps).unwrap(),
         // Assume the other formats are image formats.
         _ => ultimate_tex::convert_to_image(&input_image, output).unwrap(),
     }

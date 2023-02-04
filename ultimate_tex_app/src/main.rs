@@ -21,7 +21,6 @@ mod theme;
 
 #[derive(Default)]
 struct App {
-    is_exporting: bool,
     output_folder: Option<PathBuf>,
     save_to_original_folder: bool,
     files: Vec<ImageFileSettings>,
@@ -340,7 +339,7 @@ fn optimize_nutexb_files_recursive(root: &Path) {
         if let Ok(mut nutexb) = NutexbFile::read_from_file(entry.path()) {
             nutexb.optimize_size();
             // TODO: Avoid unwrap.
-            if let Err(e) = nutexb.write_to_file(entry.path()) {
+            if let Err(_) = nutexb.write_to_file(entry.path()) {
                 // TODO: log errors
             }
         }
@@ -391,7 +390,8 @@ fn convert_and_save_file(
 ) -> Result<(), Box<dyn Error>> {
     // Global overrides take priority over file specific settings if enabled.
     let file_type = overrides.output_file_type.unwrap_or(file.output_file_type);
-    let output_format = overrides.output_format.unwrap_or(file.output_format);
+    let format = overrides.output_format.unwrap_or(file.output_format);
+    let quality = file.compression_quality;
     let mipmaps = overrides.mipmaps.unwrap_or(file.mipmaps);
 
     let output = output_folder
@@ -399,13 +399,15 @@ fn convert_and_save_file(
         .with_extension(file_type.extension());
 
     match file_type {
-        ImageFileType::Dds => convert_to_dds(&file.image_file, &output, output_format, mipmaps)?,
+        ImageFileType::Dds => convert_to_dds(&file.image_file, &output, format, quality, mipmaps)?,
         ImageFileType::Png => convert_to_image(&file.image_file, &output)?,
         ImageFileType::Tiff => convert_to_image(&file.image_file, &output)?,
         ImageFileType::Nutexb => {
-            convert_to_nutexb(&file.image_file, &output, output_format, mipmaps)?
+            convert_to_nutexb(&file.image_file, &output, format, quality, mipmaps)?
         }
-        ImageFileType::Bntx => convert_to_bntx(&file.image_file, &output, output_format, mipmaps)?,
+        ImageFileType::Bntx => {
+            convert_to_bntx(&file.image_file, &output, format, quality, mipmaps)?
+        }
     }
     Ok(())
 }
@@ -622,7 +624,7 @@ fn main() {
     };
 
     eframe::run_native(
-        "Ultimate Tex",
+        concat!("Ultimate Tex ", env!("CARGO_PKG_VERSION")),
         options,
         Box::new(|creation_context| {
             // Use the dark theme with increased text contrast.
