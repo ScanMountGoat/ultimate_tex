@@ -1,4 +1,4 @@
-name: Rust
+name: Compile Release
 
 on: 
   workflow_dispatch:
