@@ -2,9 +2,11 @@
 Texture conversion utilities for Smash Ultimate. Report any bugs or request new features in [issues](https://github.com/ScanMountGoat/ultimate_tex/issues).
 
 ## ultimate_tex_app
-A desktop application for batch converting texture files. See the [wiki](https://github.com/ScanMountGoat/ultimate_tex/wiki) for usage instructions.
+A desktop application for batch converting texture files.
 
 ![image](https://user-images.githubusercontent.com/23301691/216787389-93b1484e-1560-4f45-8e9a-b7b60b19cdf4.png)
+
+Drag files onto the application window or add them with File > Add File(s), select the export settings, select the export folder, and click the export button to convert. See the [wiki](https://github.com/ScanMountGoat/ultimate_tex/wiki) for detailed usage instructions. 
 
 ## ultimate_tex_cli
 A commandline program for converting a single texture file.
