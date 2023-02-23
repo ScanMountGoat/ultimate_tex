@@ -120,13 +120,15 @@ impl eframe::App for App {
     fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
         // Allow loading files by dragging and dropping onto the window.
         // TODO: use rayon here as well?
-        for file in &ctx.input().raw.dropped_files {
-            if let Some(path) = &file.path {
-                if let Ok(new_file) = ImageFileSettings::from_path(path.clone()) {
-                    self.files.push(new_file);
+        ctx.input(|i| {
+            for file in &i.raw.dropped_files {
+                if let Some(path) = &file.path {
+                    if let Ok(new_file) = ImageFileSettings::from_path(path.clone()) {
+                        self.files.push(new_file);
+                    }
                 }
             }
-        }
+        });
 
         egui::TopBottomPanel::top("menu_panel").show(ctx, |ui| {
             egui::menu::bar(ui, |ui| {
@@ -653,5 +655,5 @@ fn main() {
             creation_context.egui_ctx.set_style(style);
             Box::<App>::default()
         }),
-    );
+    ).unwrap();
 }
