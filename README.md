@@ -1,4 +1,4 @@
-# ultimate_tex [![GitHub release (latest by date including pre-releases)](https://img.shields.io/github/v/release/ScanMountGoat/ssbh_editor?include_prereleases)](https://github.com/ScanMountGoat/ssbh_editor/releases/latest)
+# ultimate_tex [![GitHub release (latest by date including pre-releases)](https://img.shields.io/github/v/release/ScanMountGoat/ultimate_tex?include_prereleases)](https://github.com/ScanMountGoat/ultimate_tex/releases/latest)
 Texture conversion utilities for Smash Ultimate. Report any bugs or request new features in [issues](https://github.com/ScanMountGoat/ultimate_tex/issues).
 
 ## ultimate_tex_app
