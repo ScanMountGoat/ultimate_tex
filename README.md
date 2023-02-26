@@ -1,8 +1,8 @@
-# ultimate_tex
+# ultimate_tex [![GitHub release (latest by date including pre-releases)](https://img.shields.io/github/v/release/ScanMountGoat/ssbh_editor?include_prereleases)](https://github.com/ScanMountGoat/ssbh_editor/releases/latest)
 Texture conversion utilities for Smash Ultimate. Report any bugs or request new features in [issues](https://github.com/ScanMountGoat/ultimate_tex/issues).
 
 ## ultimate_tex_app
-A desktop application for batch converting texture files.
+A desktop application for batch converting texture files. Download the program in [releases](https://github.com/ScanMountGoat/ultimate_tex/releases).
 
 ![image](https://user-images.githubusercontent.com/23301691/216787389-93b1484e-1560-4f45-8e9a-b7b60b19cdf4.png)
 
