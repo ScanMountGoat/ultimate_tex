@@ -33,6 +33,7 @@ struct FileSettingsOverrides {
     output_file_type: Option<ImageFileType>,
     output_format: Option<ImageFormat>,
     mipmaps: Option<Mipmaps>,
+    compression_quality: Option<Quality>,
 }
 
 impl Default for FileSettingsOverrides {
@@ -42,6 +43,7 @@ impl Default for FileSettingsOverrides {
             output_file_type: Some(ImageFileType::Png),
             output_format: None,
             mipmaps: Some(Mipmaps::GeneratedAutomatic),
+            compression_quality: Some(Quality::Fast),
         }
     }
 }
@@ -335,6 +337,28 @@ fn settings_presets(ui: &mut egui::Ui, overrides: &mut FileSettingsOverrides) {
                     ui.radio_value(&mut overrides.mipmaps, Some(Mipmaps::Disabled), "Disabled");
                     ui.radio_value(&mut overrides.mipmaps, None, "Custom...");
                 });
+                ui.end_row();
+
+                ui.label("Compression");
+                ui.horizontal(|ui| {
+                    ui.radio_value(
+                        &mut overrides.compression_quality,
+                        Some(Quality::Fast),
+                        "Fast",
+                    );
+                    ui.radio_value(
+                        &mut overrides.compression_quality,
+                        Some(Quality::Normal),
+                        "Normal",
+                    );
+                    ui.radio_value(
+                        &mut overrides.compression_quality,
+                        Some(Quality::Slow),
+                        "Slow",
+                    );
+                    ui.radio_value(&mut overrides.compression_quality, None, "Custom...");
+                });
+                ui.end_row();
             }
 
             ui.end_row();
@@ -408,7 +432,9 @@ fn convert_and_save_file(
     // Global overrides take priority over file specific settings if enabled.
     let file_type = overrides.output_file_type.unwrap_or(file.output_file_type);
     let format = overrides.output_format.unwrap_or(file.output_format);
-    let quality = file.compression_quality;
+    let quality = overrides
+        .compression_quality
+        .unwrap_or(file.compression_quality);
     let mipmaps = overrides.mipmaps.unwrap_or(file.mipmaps);
 
     let output = output_folder
@@ -530,7 +556,11 @@ fn files_table_body(
             // These settings only make sense for files supporting compressed data.
             row.col(|ui| {
                 ui.add_enabled_ui(supports_compression, |ui| {
-                    edit_quality(ui, i, &mut file.compression_quality);
+                    if let Some(quality) = overrides.compression_quality {
+                        ui.label(quality_text(quality));
+                    } else {
+                        edit_quality(ui, i, &mut file.compression_quality);
+                    }
                 });
             });
 
@@ -655,5 +685,6 @@ fn main() {
             creation_context.egui_ctx.set_style(style);
             Box::<App>::default()
         }),
-    ).unwrap();
+    )
+    .unwrap();
 }
