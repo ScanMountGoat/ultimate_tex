@@ -9,6 +9,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Fixed
 * Fixed an issue where some pixels near the edges would be incorrectly set as transparent when decoding or changing formats.
+* Fixed an issue where generated BNTX files would not save properly and cause crashes when loaded in game.
 
 ### 0.1.1 - 2023-02-23
 ### Fixed
