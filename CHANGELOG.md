@@ -3,7 +3,7 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
-### unreleased
+### 0.1.3 - 2023-04-21
 ### Fixed
 * Fixed an issue where generated BNTX files would not save properly and cause crashes when loaded in game.
 
