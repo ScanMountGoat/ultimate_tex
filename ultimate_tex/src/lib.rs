@@ -195,24 +195,24 @@ pub fn convert_to_bntx(
         ImageFile::Image(image) => {
             let dds = image_dds::dds_from_image(image, image_format, quality, mipmaps)?;
             let bntx = bntx::dds::create_bntx(&name, &dds)?;
-            bntx.save(output)?;
+            bntx.write_to_file(output)?;
         }
         ImageFile::Dds(dds) => {
             let new_dds = encode_dds(&dds, image_format, quality, mipmaps)?;
             let bntx = bntx::dds::create_bntx(&name, &new_dds)?;
-            bntx.save(output)?;
+            bntx.write_to_file(output)?;
         }
         ImageFile::Nutexb(nutexb) => {
             let dds = nutexb.to_dds()?;
             let new_dds = encode_dds(&dds, image_format, quality, mipmaps)?;
             let bntx = bntx::dds::create_bntx(&name, &new_dds)?;
-            bntx.save(output)?;
+            bntx.write_to_file(output)?;
         }
         ImageFile::Bntx(bntx) => {
             let dds = bntx::dds::create_dds(bntx)?;
             let new_dds = encode_dds(&dds, image_format, quality, mipmaps)?;
             let new_bntx = bntx::dds::create_bntx(&name, &new_dds)?;
-            new_bntx.save(output)?;
+            new_bntx.write_to_file(output)?;
         }
     }
     Ok(())
