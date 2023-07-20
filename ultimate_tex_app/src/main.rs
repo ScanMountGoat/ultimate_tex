@@ -10,7 +10,7 @@ use eframe::egui::{self, Button, ComboBox, Grid, Id, ScrollArea, Style, Visuals}
 use egui_extras::{Column, TableBuilder, TableRow};
 use image_dds::{ImageFormat, Mipmaps, Quality};
 use rayon::prelude::*;
-use rfd::FileDialog;
+// use rfd::FileDialog;
 use strum::IntoEnumIterator;
 use theme::widgets_dark;
 use ultimate_tex::{
@@ -138,20 +138,20 @@ impl eframe::App for App {
                     if ui.button("Add Files...").clicked() {
                         ui.close_menu();
 
-                        if let Some(files) = FileDialog::new()
-                            .add_filter(
-                                "image files",
-                                &["png", "tiff", "nutexb", "bntx", "jpeg", "jpg", "dds"],
-                            )
-                            .pick_files()
-                        {
-                            let start = std::time::Instant::now();
+                        // if let Some(files) = FileDialog::new()
+                        //     .add_filter(
+                        //         "image files",
+                        //         &["png", "tiff", "nutexb", "bntx", "jpeg", "jpg", "dds"],
+                        //     )
+                        //     .pick_files()
+                        // {
+                        //     let start = std::time::Instant::now();
 
-                            let new_files = files.into_par_iter().filter_map(|f| ImageFileSettings::from_path(f).ok());
-                            self.files.par_extend(new_files);
+                        //     let new_files = files.into_par_iter().filter_map(|f| ImageFileSettings::from_path(f).ok());
+                        //     self.files.par_extend(new_files);
 
-                            println!("Loaded files in {:?}", start.elapsed());
-                        }
+                        //     println!("Loaded files in {:?}", start.elapsed());
+                        // }
                     }
 
                     if ui.button("Clear Files").clicked() {
@@ -171,11 +171,11 @@ impl eframe::App for App {
                     {
                         ui.close_menu();
 
-                        if let Some(folder) = FileDialog::new().pick_folder() {
-                            optimize_nutexb_files_recursive(&folder);
-                            // TODO: Show how many files were optimized in the bottom bar?
-                            // TODO: Log errors to the bottom bar?
-                        }
+                        // if let Some(folder) = FileDialog::new().pick_folder() {
+                        //     optimize_nutexb_files_recursive(&folder);
+                        //     // TODO: Show how many files were optimized in the bottom bar?
+                        //     // TODO: Log errors to the bottom bar?
+                        // }
                     }
                 });
 
@@ -203,9 +203,9 @@ impl eframe::App for App {
                         ui.label(output_folder.to_string_lossy());
                     }
                     if ui.button("Open...").clicked() {
-                        if let Some(folder) = FileDialog::new().pick_folder() {
-                            self.output_folder = Some(folder);
-                        }
+                        // if let Some(folder) = FileDialog::new().pick_folder() {
+                        //     self.output_folder = Some(folder);
+                        // }
                     }
                 });
             }
