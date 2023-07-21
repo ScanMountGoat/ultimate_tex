@@ -16,5 +16,9 @@ globwalk = "0.8.1"
 rayon = "1.6.1"
 open = "3"
 
+[[bin]]
+name = "ultimate_tex"
+path = "src/main.rs"
+
 [package.metadata.bundle]
 name = "ultimate_tex"
