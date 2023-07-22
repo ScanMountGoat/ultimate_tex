@@ -4493,16 +4493,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "tauri_test"
-version = "0.0.0"
-dependencies = [
- "serde",
- "serde_json",
- "tauri",
- "tauri-build",
-]
-
-[[package]]
 name = "tegra_swizzle"
 version = "0.3.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -4847,6 +4837,16 @@ dependencies = [
  "clap 4.2.4",
  "image_dds",
  "ultimate_tex",
+]
+
+[[package]]
+name = "ultimate_tex_tauri"
+version = "0.0.0"
+dependencies = [
+ "serde",
+ "serde_json",
+ "tauri",
+ "tauri-build",
 ]
 
 [[package]]

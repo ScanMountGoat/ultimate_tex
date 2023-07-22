@@ -6,7 +6,7 @@
     "distDir": "../build"
   },
   "package": {
-    "productName": "tauri_test",
+    "productName": "ultimate_tex_tauri",
     "version": "0.0.0"
   },
   "tauri": {
@@ -26,7 +26,7 @@
       },
       "externalBin": [],
       "icon": [],
-      "identifier": "com.tauri.dev.tauri-test",
+      "identifier": "com.tauri.dev.ultimate-tex-tauri",
       "longDescription": "",
       "macOS": {
         "entitlements": null,
@@ -55,7 +55,7 @@
         "fullscreen": false,
         "height": 600,
         "resizable": true,
-        "title": "tauri_test",
+        "title": "ultimate_tex_tauri",
         "width": 800
       }
     ]
