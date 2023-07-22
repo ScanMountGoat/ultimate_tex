@@ -2,12 +2,37 @@
 	import { invoke } from '@tauri-apps/api/tauri';
 	import { onMount } from 'svelte';
 
-	let outputTypes = ['PNG', 'DDS', 'Nutexb', 'Custom...'];
-	let outputFormats = ['A', 'B', 'C'];
-	let mipmaps = ['A', 'B', 'C'];
-	let compressions = ['Slow', 'Normal', 'Fast'];
+	let fileTypes = ['Dds', 'Png', 'Tiff', 'Nutexb', 'Bntx'];
+	let formatTypes = [
+		'R8Unorm',
+		'R8G8B8A8Unorm',
+		'R8G8B8A8Srgb',
+		'R32G32B32A32Float',
+		'B8G8R8A8Unorm',
+		'B8G8R8A8Srgb',
+		'BC1Unorm',
+		'BC1Srgb',
+		'BC2Unorm',
+		'BC2Srgb',
+		'BC3Unorm',
+		'BC3Srgb',
+		'BC4Unorm',
+		'BC4Snorm',
+		'BC5Unorm',
+		'BC5Snorm',
+		'BC6Ufloat',
+		'BC6Sfloat',
+		'BC7Unorm',
+		'BC7Srgb'
+	];
+	let mipmapTypes = ['Disabled', 'FromSurface', 'GeneratedAutomatic'];
+	let compressionTypes = ['Fast', 'Normal', 'Slow'];
 
-	let selected = 'DDS';
+	// Reduced options for global presets.
+	let presetFileTypes = ['PNG', 'DDS', 'Nutexb', 'Bntx', 'Custom...'];
+	let presetFormatTypes = ['Color (sRGB) + Alpha', 'Color (Linear) + Alpha', 'Custom...'];
+	let presetMipmapTypes = ['Enabled', 'Disabled', 'Custom...'];
+	let presetCompressionTypes = ['Fast', 'Normal', 'Slow', 'Custom...'];
 
 	let items = [];
 
@@ -21,36 +46,36 @@
 <div class="flex-container">
 	<fieldset>
 		<legend><strong>Output Type</strong></legend>
-		{#each outputTypes as option}
-			<label for="radio-1">
-				<input type="radio" id="radio-1" name="radio" value={option} />
+		{#each presetFileTypes as option}
+			<label for="outputType">
+				<input type="radio" id="radio-1" name="outputType" value={option} />
 				{option}
 			</label>
 		{/each}
 	</fieldset>
 	<fieldset>
 		<legend><strong>Output Format</strong></legend>
-		{#each outputFormats as option}
-			<label for="radio-1">
-				<input type="radio" id="radio-1" name="radio" value={option} />
+		{#each presetFormatTypes as option}
+			<label for="outputFormat">
+				<input type="radio" id="radio-1" name="outputFormat" value={option} />
 				{option}
 			</label>
 		{/each}
 	</fieldset>
 	<fieldset>
 		<legend><strong>Mipmaps</strong></legend>
-		{#each mipmaps as option}
-			<label for="radio-1">
-				<input type="radio" id="radio-1" name="radio" value={option} />
+		{#each presetMipmapTypes as option}
+			<label for="mipmaps">
+				<input type="radio" id="radio-1" name="mipmaps" value={option} />
 				{option}
 			</label>
 		{/each}
 	</fieldset>
 	<fieldset>
 		<legend><strong>Compression</strong></legend>
-		{#each compressions as option}
-			<label for="radio-1">
-				<input type="radio" id="radio-1" name="radio" value={option} />
+		{#each presetCompressionTypes as option}
+			<label for="compression">
+				<input type="radio" id="radio-1" name="compression" value={option} />
 				{option}
 			</label>
 		{/each}
@@ -80,23 +105,31 @@
 					<th>{item.format}</th>
 					<th>{item.dimensions}</th>
 					<th>
-						<select>
-							<option value="nutexb">{item.file_type}</option>
+						<select bind:value={item.file_type}>
+							{#each fileTypes as option}
+								<option value={option}>{option}</option>
+							{/each}
 						</select>
 					</th>
 					<th>
-						<select>
-							<option value="nutexb">{item.format}</option>
+						<select bind:value={item.format}>
+							{#each formatTypes as option}
+								<option value={option}>{option}</option>
+							{/each}
 						</select>
 					</th>
 					<th>
-						<select>
-							<option value="fast">{item.quality}</option>
+						<select bind:value={item.quality}>
+							{#each compressionTypes as option}
+								<option value={option}>{option}</option>
+							{/each}
 						</select>
 					</th>
 					<th>
-						<select name="mipmaps" id="mipmaps">
-							<option value="fast">{item.mipmaps}</option>
+						<select bind:value={item.mipmaps}>
+							{#each mipmapTypes as option}
+								<option value={option}>{option}</option>
+							{/each}
 						</select>
 					</th>
 					<th>
