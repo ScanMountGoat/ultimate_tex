@@ -1,5 +1,6 @@
 <script>
 	import { invoke } from '@tauri-apps/api/tauri';
+	import { emit, listen } from '@tauri-apps/api/event'
 	import { onMount } from 'svelte';
 
 	let fileTypes = ['Dds', 'Png', 'Tiff', 'Nutexb', 'Bntx'];
@@ -38,6 +39,11 @@
 
 	async function loadList() {
 		items = await invoke('load_items', {});
+
+		// TODO: Where to call this?
+		await listen('items_changed', async (event) => {
+			items = await invoke('load_items', {});
+		});
 	}
 
 	onMount(loadList);
