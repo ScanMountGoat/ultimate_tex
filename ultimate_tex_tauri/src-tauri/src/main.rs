@@ -26,6 +26,18 @@ struct App {
     file_settings: Vec<ImageFileSettings>,
 }
 
+impl App {
+    fn add_files(&mut self, files: &[PathBuf]) {
+        // TODO: par_iter?
+        for file in files {
+            let image = ImageFile::read(&file).unwrap();
+            let image_settings = ImageFileSettings::from_image(file.clone(), &image);
+            self.files.push(image);
+            self.file_settings.push(image_settings);
+        }
+    }
+}
+
 struct FileSettingsOverrides {
     output_file_type: Option<ImageFileType>,
     output_format: Option<ImageFormat>,
@@ -122,10 +134,28 @@ fn main() {
     tauri::Builder::default()
         .manage(AppState::default())
         .setup(|app| {
-            app.get_window("main")
-                .unwrap()
+            let main_window = app.get_window("main").unwrap();
+            main_window
                 .set_title(concat!("Ultimate Tex ", env!("CARGO_PKG_VERSION")))
                 .unwrap();
+
+            let handle = app.handle();
+            main_window.listen("remove_item", move |event| {
+                if let Some(name) = event
+                    .payload()
+                    .and_then(|s| serde_json::from_str::<String>(s).ok())
+                {
+                    // TODO: Simpler way to remove the item with the given name?
+                    let state = handle.state::<AppState>();
+                    let app = &mut state.0.lock().unwrap();
+                    if let Some(index) = app.file_settings.iter().position(|s| s.name == name) {
+                        app.files.remove(index);
+                        app.file_settings.remove(index);
+
+                        handle.emit_to("main", "items_changed", "").unwrap();
+                    }
+                }
+            });
 
             Ok(())
         })
@@ -137,40 +167,44 @@ fn main() {
                         "image files",
                         &["png", "tiff", "nutexb", "bntx", "jpeg", "jpg", "dds"],
                     )
-                    .pick_files(move |new_files| {
-                        if let Some(new_files) = new_files {
-                            let state: tauri::State<AppState> = event.window().state();
+                    .pick_files(move |files| {
+                        if let Some(files) = files {
+                            let state = event.window().state::<AppState>();
 
                             let app = &mut state.0.lock().unwrap();
-
-                            for file in new_files {
-                                let image = ImageFile::read(&file).unwrap();
-                                let image_settings = ImageFileSettings::from_image(file, &image);
-                                app.files.push(image);
-                                app.file_settings.push(image_settings);
-                            }
-
-                            // TODO: Is this the best way to notify javascript to update items?
+                            app.add_files(&files);
                             event.window().emit("items_changed", "").unwrap();
                         }
                     });
             }
             "file_clear_files" => {
-                let state: tauri::State<AppState> = event.window().state();
+                let state = event.window().state::<AppState>();
                 let mut app = state.0.lock().unwrap();
                 app.file_settings.clear();
                 app.files.clear();
 
-                // TODO: Is this the best way to notify javascript to update items?
                 event.window().emit("items_changed", "").unwrap();
             }
             _ => (),
         })
-        .on_window_event(|e| {
-            // Workaround for slow Chromium window resizing.
-            // https://github.com/tauri-apps/tauri/issues/6322
-            if let WindowEvent::Resized(_) = e.event() {
-                std::thread::sleep(std::time::Duration::from_nanos(1));
+        .on_window_event(|event| {
+            let state = event.window().state::<AppState>();
+            let mut app = state.0.lock().unwrap();
+
+            match event.event() {
+                WindowEvent::Resized(_) => {
+                    // Workaround for slow Chromium window resizing.
+                    // https://github.com/tauri-apps/tauri/issues/6322
+                    std::thread::sleep(std::time::Duration::from_nanos(1));
+                }
+                WindowEvent::FileDrop(e) => match e {
+                    tauri::FileDropEvent::Dropped(files) => {
+                        app.add_files(files);
+                        event.window().emit("items_changed", "").unwrap();
+                    }
+                    _ => (),
+                },
+                _ => (),
             }
         })
         .invoke_handler(tauri::generate_handler![load_items])

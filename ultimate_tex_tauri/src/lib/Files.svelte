@@ -1,6 +1,6 @@
 <script>
 	import { invoke } from '@tauri-apps/api/tauri';
-	import { emit, listen } from '@tauri-apps/api/event'
+	import { emit, listen } from '@tauri-apps/api/event';
 	import { onMount } from 'svelte';
 
 	let fileTypes = ['Dds', 'Png', 'Tiff', 'Nutexb', 'Bntx'];
@@ -139,7 +139,12 @@
 						</select>
 					</th>
 					<th>
-						<button class="secondary">Remove</button>
+						<button
+							class="secondary"
+							on:click={(_) => {
+								emit('remove_item', item.name);
+							}}>Remove</button
+						>
 					</th>
 				</tr>
 			{/each}
