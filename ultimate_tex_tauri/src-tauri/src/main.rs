@@ -1,29 +1,29 @@
 // Prevents additional console window on Windows in release, DO NOT REMOVE!!
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
-use std::{error::Error, path::PathBuf, sync::Mutex};
+use std::{
+    error::Error,
+    path::{Path, PathBuf},
+    sync::Mutex,
+};
 
 use image_dds::{ImageFormat, Mipmaps, Quality};
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 use tauri::{CustomMenuItem, Manager, Menu, Submenu, WindowEvent};
 use ultimate_tex::{
-    convert_to_bntx, convert_to_dds, convert_to_image, convert_to_nutexb, ImageFile, NutexbFile,
+    convert_to_bntx, convert_to_dds, convert_to_image, convert_to_nutexb, ImageFile,
 };
 
 #[derive(Default)]
 struct AppState(Mutex<App>);
 
+// TODO: Add proper logging using events?
 #[derive(Default)]
 struct App {
-    output_folder: Option<PathBuf>,
-    save_to_original_folder: bool,
-    overrides: FileSettingsOverrides,
-    // TODO: Add proper logging.
-    message_text: String,
     // Store settings separately to pass to and from javascript.
     // Image data should only ever be accessible from Rust.
+    settings: AppSettings,
     files: Vec<ImageFile>,
-    file_settings: Vec<ImageFileSettings>,
 }
 
 impl App {
@@ -33,11 +33,74 @@ impl App {
             let image = ImageFile::read(&file).unwrap();
             let image_settings = ImageFileSettings::from_image(file.clone(), &image);
             self.files.push(image);
-            self.file_settings.push(image_settings);
+            self.settings.file_settings.push(image_settings);
         }
+    }
+
+    fn clear_files(&mut self) {
+        self.files.clear();
+        self.settings.file_settings.clear();
+    }
+
+    fn convert_and_export_files(&self) -> Result<usize, Box<dyn Error>> {
+        // TODO: Log an error if creating the output directory fails.
+        if let Some(output_folder) = &self.settings.output_folder {
+            std::fs::create_dir_all(output_folder)?;
+        }
+
+        let start = std::time::Instant::now();
+
+        // TODO: report progress?
+        let count = self
+            .settings
+            .file_settings
+            .iter()
+            .zip(self.files.iter())
+            .map(|(settings, file)| {
+                // TODO: find a simpler way to write this.
+                if let Some(file_output_folder) = if self.settings.save_to_original_folder {
+                    settings.path.parent().map(PathBuf::from)
+                } else {
+                    self.settings.output_folder.to_owned()
+                } {
+                    match convert_and_save_file(
+                        &file_output_folder,
+                        settings,
+                        file,
+                        &self.settings.overrides,
+                    ) {
+                        Ok(_) => 1,
+                        Err(e) => {
+                            // TODO: Log errors.
+                            println!("Error converting {:?}: {e}", settings.path);
+                            0
+                        }
+                    }
+                } else {
+                    0
+                }
+            })
+            .sum();
+
+        println!(
+            "Converted {} files in {:?}",
+            self.files.len(),
+            start.elapsed()
+        );
+
+        Ok(count)
     }
 }
 
+#[derive(Serialize, Deserialize, Clone, Default)]
+struct AppSettings {
+    output_folder: Option<PathBuf>,
+    save_to_original_folder: bool,
+    overrides: FileSettingsOverrides,
+    file_settings: Vec<ImageFileSettings>,
+}
+
+#[derive(Serialize, Deserialize, Clone)]
 struct FileSettingsOverrides {
     output_file_type: Option<ImageFileType>,
     output_format: Option<ImageFormat>,
@@ -57,7 +120,7 @@ impl Default for FileSettingsOverrides {
     }
 }
 
-#[derive(Debug, Serialize, PartialEq, Clone, Copy)]
+#[derive(Serialize, Deserialize, PartialEq, Clone, Copy)]
 enum ImageFileType {
     Dds,
     Png,
@@ -84,39 +147,50 @@ impl ImageFileType {
     }
 }
 
-#[derive(Serialize, Clone)]
+#[derive(Serialize, Deserialize, Clone)]
 struct ImageFileSettings {
     // TODO: Properly implement serialize?
     name: String,
     path: PathBuf,
+    format: ImageFormat,
+    dimensions: (u32, u32, u32),
     output_file_type: ImageFileType,
-    #[serde(skip)]
     output_format: ImageFormat,
-    #[serde(skip)]
-    compression_quality: Quality,
-    #[serde(skip)]
-    mipmaps: Mipmaps,
+    output_quality: Quality,
+    output_mipmaps: Mipmaps,
 }
 
 impl ImageFileSettings {
     fn from_image(path: PathBuf, image: &ImageFile) -> Self {
         // Default to the input format to encourage lossless conversions.
-        let output_format = image.image_format();
+        let format = image.image_format();
         ImageFileSettings {
             name: path.file_name().unwrap().to_string_lossy().to_string(),
             path,
+            format,
+            dimensions: image.dimensions(),
             output_file_type: ImageFileType::Nutexb,
-            output_format,
-            compression_quality: Quality::Fast,
-            mipmaps: Mipmaps::GeneratedAutomatic,
+            output_format: format,
+            output_quality: Quality::Fast,
+            output_mipmaps: Mipmaps::GeneratedAutomatic,
         }
+    }
+
+    fn file_name_no_extension(&self) -> String {
+        // TODO: Avoid unwrap.
+        self.path
+            .with_extension("")
+            .file_name()
+            .unwrap_or_default()
+            .to_string_lossy()
+            .to_string()
     }
 }
 
 #[tauri::command]
 fn load_items(state: tauri::State<AppState>) -> Vec<ImageFileSettings> {
     // TODO: Is this the best way to pass to javascript?
-    state.0.lock().unwrap().file_settings.clone()
+    state.0.lock().unwrap().settings.file_settings.clone()
 }
 
 // TODO: Just do this in svelte for consistency?
@@ -128,6 +202,32 @@ fn main_menu() -> Menu {
         Menu::new().add_item(add_files).add_item(clear_files),
     );
     Menu::new().add_submenu(file)
+}
+
+fn convert_and_save_file(
+    output_folder: &Path,
+    file: &ImageFileSettings,
+    image_file: &ImageFile,
+    overrides: &FileSettingsOverrides,
+) -> Result<(), Box<dyn Error>> {
+    // Global overrides take priority over file specific settings if enabled.
+    let file_type = overrides.output_file_type.unwrap_or(file.output_file_type);
+    let format = overrides.output_format.unwrap_or(file.output_format);
+    let quality = overrides.compression_quality.unwrap_or(file.output_quality);
+    let mipmaps = overrides.mipmaps.unwrap_or(file.output_mipmaps);
+
+    let output = output_folder
+        .join(file.file_name_no_extension())
+        .with_extension(file_type.extension());
+
+    match file_type {
+        ImageFileType::Dds => convert_to_dds(image_file, &output, format, quality, mipmaps)?,
+        ImageFileType::Png => convert_to_image(image_file, &output)?,
+        ImageFileType::Tiff => convert_to_image(image_file, &output)?,
+        ImageFileType::Nutexb => convert_to_nutexb(image_file, &output, format, quality, mipmaps)?,
+        ImageFileType::Bntx => convert_to_bntx(image_file, &output, format, quality, mipmaps)?,
+    }
+    Ok(())
 }
 
 fn main() {
@@ -148,13 +248,26 @@ fn main() {
                     // TODO: Simpler way to remove the item with the given name?
                     let state = handle.state::<AppState>();
                     let app = &mut state.0.lock().unwrap();
-                    if let Some(index) = app.file_settings.iter().position(|s| s.name == name) {
+                    if let Some(index) = app
+                        .settings
+                        .file_settings
+                        .iter()
+                        .position(|s| s.name == name)
+                    {
                         app.files.remove(index);
-                        app.file_settings.remove(index);
+                        app.settings.file_settings.remove(index);
 
                         handle.emit_to("main", "items_changed", "").unwrap();
                     }
                 }
+            });
+
+            let handle = app.handle();
+            main_window.listen("export_items", move |event| {
+                let state = handle.state::<AppState>();
+                let app = &mut state.0.lock().unwrap();
+                // TODO: Log errors.
+                app.convert_and_export_files().unwrap();
             });
 
             Ok(())
@@ -180,8 +293,7 @@ fn main() {
             "file_clear_files" => {
                 let state = event.window().state::<AppState>();
                 let mut app = state.0.lock().unwrap();
-                app.file_settings.clear();
-                app.files.clear();
+                app.clear_files();
 
                 event.window().emit("items_changed", "").unwrap();
             }
