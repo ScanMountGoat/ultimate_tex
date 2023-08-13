@@ -8,6 +8,7 @@ use std::{
 };
 
 use image_dds::{ImageFormat, Mipmaps, Quality};
+use rayon::prelude::*;
 use serde::{Deserialize, Serialize};
 use tauri::{CustomMenuItem, Manager, Menu, Submenu, WindowEvent};
 use ultimate_tex::{
@@ -54,11 +55,11 @@ impl App {
         let count = self
             .settings
             .file_settings
-            .iter()
-            .zip(self.files.iter())
+            .par_iter()
+            .zip(self.files.par_iter())
             .map(|(settings, file)| {
                 // TODO: find a simpler way to write this.
-                if let Some(file_output_folder) = if self.settings.save_to_original_folder {
+                if let Some(file_output_folder) = if self.settings.save_in_same_folder {
                     settings.path.parent().map(PathBuf::from)
                 } else {
                     self.settings.output_folder.to_owned()
@@ -93,14 +94,16 @@ impl App {
 }
 
 #[derive(Serialize, Deserialize, Clone, Default)]
+#[serde(rename_all = "camelCase")]
 struct AppSettings {
     output_folder: Option<PathBuf>,
-    save_to_original_folder: bool,
+    save_in_same_folder: bool,
     overrides: FileSettingsOverrides,
     file_settings: Vec<ImageFileSettings>,
 }
 
 #[derive(Serialize, Deserialize, Clone)]
+#[serde(rename_all = "camelCase")]
 struct FileSettingsOverrides {
     output_file_type: Option<ImageFileType>,
     output_format: Option<ImageFormat>,
@@ -148,8 +151,8 @@ impl ImageFileType {
 }
 
 #[derive(Serialize, Deserialize, Clone)]
+#[serde(rename_all = "camelCase")]
 struct ImageFileSettings {
-    // TODO: Properly implement serialize?
     name: String,
     path: PathBuf,
     format: ImageFormat,
@@ -191,6 +194,18 @@ impl ImageFileSettings {
 fn load_items(state: tauri::State<AppState>) -> Vec<ImageFileSettings> {
     // TODO: Is this the best way to pass to javascript?
     state.0.lock().unwrap().settings.file_settings.clone()
+}
+
+#[tauri::command(async)]
+async fn export_items(settings: AppSettings, handle: tauri::AppHandle) {
+    tauri::async_runtime::spawn_blocking(move || {
+        // TODO: Is it worth storing settings in Rust if we get it from JS anyway?
+        // TODO: Log errors.
+        let state = handle.state::<AppState>();
+        let app = &mut state.0.lock().unwrap();
+        app.settings = settings;
+        app.convert_and_export_files().unwrap();
+    });
 }
 
 // TODO: Just do this in svelte for consistency?
@@ -262,14 +277,6 @@ fn main() {
                 }
             });
 
-            let handle = app.handle();
-            main_window.listen("export_items", move |event| {
-                let state = handle.state::<AppState>();
-                let app = &mut state.0.lock().unwrap();
-                // TODO: Log errors.
-                app.convert_and_export_files().unwrap();
-            });
-
             Ok(())
         })
         .menu(main_menu())
@@ -283,8 +290,8 @@ fn main() {
                     .pick_files(move |files| {
                         if let Some(files) = files {
                             let state = event.window().state::<AppState>();
-
                             let app = &mut state.0.lock().unwrap();
+
                             app.add_files(&files);
                             event.window().emit("items_changed", "").unwrap();
                         }
@@ -292,17 +299,14 @@ fn main() {
             }
             "file_clear_files" => {
                 let state = event.window().state::<AppState>();
-                let mut app = state.0.lock().unwrap();
-                app.clear_files();
+                let app = &mut state.0.lock().unwrap();
 
+                app.clear_files();
                 event.window().emit("items_changed", "").unwrap();
             }
             _ => (),
         })
         .on_window_event(|event| {
-            let state = event.window().state::<AppState>();
-            let mut app = state.0.lock().unwrap();
-
             match event.event() {
                 WindowEvent::Resized(_) => {
                     // Workaround for slow Chromium window resizing.
@@ -310,8 +314,11 @@ fn main() {
                     std::thread::sleep(std::time::Duration::from_nanos(1));
                 }
                 WindowEvent::FileDrop(e) => match e {
-                    tauri::FileDropEvent::Dropped(files) => {
-                        app.add_files(files);
+                    tauri::FileDropEvent::Dropped(new_files) => {
+                        let state = event.window().state::<AppState>();
+                        let app = &mut state.0.lock().unwrap();
+
+                        app.add_files(new_files);
                         event.window().emit("items_changed", "").unwrap();
                     }
                     _ => (),
@@ -319,7 +326,7 @@ fn main() {
                 _ => (),
             }
         })
-        .invoke_handler(tauri::generate_handler![load_items])
+        .invoke_handler(tauri::generate_handler![load_items, export_items])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }

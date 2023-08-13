@@ -3,7 +3,7 @@
 	import { emit, listen } from '@tauri-apps/api/event';
 	import { onMount } from 'svelte';
 
-	// TODO: Get these using strum?
+	// TODO: Get these from Rust using strum?
 	let fileTypes = ['Dds', 'Png', 'Tiff', 'Nutexb', 'Bntx'];
 	let formatTypes = [
 		'R8Unorm',
@@ -31,31 +31,41 @@
 	let compressionTypes = ['Fast', 'Normal', 'Slow'];
 
 	// Reduced options for global presets.
-	let presetFileTypes = ['PNG', 'DDS', 'Nutexb', 'Bntx', 'Custom...'];
+	let presetFileTypes = ['Png', 'Dds', 'Nutexb', 'Bntx', 'Custom...'];
 	let presetFormatTypes = ['Color (sRGB) + Alpha', 'Color (Linear) + Alpha', 'Custom...'];
 	let presetMipmapTypes = ['Enabled', 'Disabled', 'Custom...'];
 	let presetCompressionTypes = ['Fast', 'Normal', 'Slow', 'Custom...'];
 
+	// TODO: Better way to just have Rust initialize this?
 	let saveInSameFolder = false;
 
-	let items = [];
+	// TODO: set proper defaults.
+	let overrides = {
+		outputFileType: null,
+		outputFormat: null,
+		mipmaps: null,
+		compressionQuality: null
+	};
+
+	let fileSettings = [];
 
 	async function loadList() {
-		items = await invoke('load_items', {});
+		fileSettings = await invoke('load_items', {});
 
 		// TODO: Where to call this?
 		await listen('items_changed', async (event) => {
-			items = await invoke('load_items', {});
+			fileSettings = await invoke('load_items', {});
 		});
 	}
 
 	onMount(loadList);
 
-
-	function exportItems(_) {
-		// TODO: pass settings to Rust?
-		// TODO: Create a Rust struct to serialize for the initial load?
-		emit('export_items', { saveInSameFolder, items });
+	async function exportItems(_) {
+		// Pass the AppSettings to Rust in case anything changed.
+		// TODO: output folder?
+		let settings = { outputFolder: null, saveInSameFolder, overrides, fileSettings };
+		// TODO: Disable the export button until the export completes.
+		await invoke('export_items', { settings });
 	}
 
 	function formatDimensions(dimensions: [number, number, number]): string {
@@ -63,7 +73,6 @@
 		return `${w}x${h}x${d}`;
 	}
 </script>
-
 
 <label for="checkbox-1">
 	<input type="checkbox" id="checkbox-1" name="checkbox-1" bind:checked={saveInSameFolder} />
@@ -75,10 +84,7 @@
 		<button style="width: auto; height: auto;" class="secondary">Choose Folder...</button>
 	</label>
 {/if}
-<button
-	style="width: 150px;"
-	on:click={exportItems}>Export</button
->
+<button style="width: 150px;" on:click={exportItems}>Export</button>
 
 <hr />
 
@@ -87,7 +93,7 @@
 		<legend><strong>Output Type</strong></legend>
 		{#each presetFileTypes as option}
 			<label for="outputType">
-				<input type="radio" id="radio-1" name="outputType" value={option} />
+				<input type="radio" bind:group={overrides.outputFileType} name="outputType" value={option} />
 				{option}
 			</label>
 		{/each}
@@ -96,7 +102,7 @@
 		<legend><strong>Output Format</strong></legend>
 		{#each presetFormatTypes as option}
 			<label for="outputFormat">
-				<input type="radio" id="radio-1" name="outputFormat" value={option} />
+				<input type="radio" bind:group={overrides.outputFormat} name="outputFormat" value={option} />
 				{option}
 			</label>
 		{/each}
@@ -105,7 +111,7 @@
 		<legend><strong>Mipmaps</strong></legend>
 		{#each presetMipmapTypes as option}
 			<label for="mipmaps">
-				<input type="radio" id="radio-1" name="mipmaps" value={option} />
+				<input type="radio" bind:group={overrides.mipmaps} name="mipmaps" value={option} />
 				{option}
 			</label>
 		{/each}
@@ -114,7 +120,7 @@
 		<legend><strong>Compression</strong></legend>
 		{#each presetCompressionTypes as option}
 			<label for="compression">
-				<input type="radio" id="radio-1" name="compression" value={option} />
+				<input type="radio" bind:group={overrides.compressionQuality} name="compression" value={option} />
 				{option}
 			</label>
 		{/each}
@@ -136,13 +142,13 @@
 			</tr>
 		</thead>
 		<tbody>
-			{#each items as item}
+			{#each fileSettings as item}
 				<tr>
 					<th scope="row">{item.name}</th>
-					<th>{item.output_format}</th>
+					<th>{item.outputFormat}</th>
 					<th>{formatDimensions(item.dimensions)}</th>
 					<th>
-						<select bind:value={item.output_file_type}>
+						<select bind:value={item.outputFileType}>
 							{#each fileTypes as option}
 								<option value={option}>{option}</option>
 							{/each}
@@ -156,14 +162,14 @@
 						</select>
 					</th>
 					<th>
-						<select bind:value={item.output_quality}>
+						<select bind:value={item.outputQuality}>
 							{#each compressionTypes as option}
 								<option value={option}>{option}</option>
 							{/each}
 						</select>
 					</th>
 					<th>
-						<select bind:value={item.output_mipmaps}>
+						<select bind:value={item.outputMipmaps}>
 							{#each mipmapTypes as option}
 								<option value={option}>{option}</option>
 							{/each}

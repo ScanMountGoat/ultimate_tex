@@ -18,6 +18,7 @@ tauri = { version = "1.4.1", features = ["shell-open", "dialog"] }
 ultimate_tex = { path = "../../ultimate_tex" }
 image = "0.24.5"
 image_dds = { git = "https://github.com/ScanMountGoat/image_dds", rev = "809c447", features = ["ddsfile", "image", "serde"] }
+rayon = "1.7.0"
 
 [features]
 # by default Tauri runs in production mode

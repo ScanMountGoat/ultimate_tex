@@ -4678,6 +4678,7 @@ version = "0.0.0"
 dependencies = [
  "image",
  "image_dds",
+ "rayon",
  "serde",
  "serde_json",
  "tauri",
