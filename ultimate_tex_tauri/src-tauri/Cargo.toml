@@ -14,7 +14,7 @@ tauri-build = { version = "1.2", features = [] }
 [dependencies]
 serde_json = "1.0"
 serde = { version = "1.0", features = ["derive"] }
-tauri = { version = "1.4.1", features = ["shell-open", "dialog"] }
+tauri = { version = "1.4.1", features = ["dialog", "shell-open"] }
 ultimate_tex = { path = "../../ultimate_tex" }
 image = "0.24.5"
 image_dds = { git = "https://github.com/ScanMountGoat/image_dds", rev = "809c447", features = ["ddsfile", "image", "serde"] }

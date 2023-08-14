@@ -210,13 +210,21 @@ async fn export_items(settings: AppSettings, handle: tauri::AppHandle) {
 
 // TODO: Just do this in svelte for consistency?
 fn main_menu() -> Menu {
-    let add_files = CustomMenuItem::new("file_add_files", "Add Files...");
-    let clear_files = CustomMenuItem::new("file_clear_files", "Clear Files");
-    let file = Submenu::new(
-        "File",
-        Menu::new().add_item(add_files).add_item(clear_files),
-    );
-    Menu::new().add_submenu(file)
+    // Start by customizing a mostly native menu.
+    let mut menu = tauri::Menu::os_default("Ultimate Tex");
+    for item in &mut menu.items {
+        if let tauri::MenuEntry::Submenu(sub) = item {
+            if sub.title == "File" {
+                let add_files = CustomMenuItem::new("file_add_files", "Add Files...");
+                let clear_files = CustomMenuItem::new("file_clear_files", "Clear Files");
+                sub.inner.items = vec![
+                    tauri::MenuEntry::CustomItem(add_files),
+                    tauri::MenuEntry::CustomItem(clear_files),
+                ];
+            }
+        }
+    }
+    menu
 }
 
 fn convert_and_save_file(
