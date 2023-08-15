@@ -69,19 +69,19 @@
 	}
 
 	async function addFiles(_) {
-		await invoke('add_files', { });
+		await invoke('add_files', {});
 	}
 
 	async function clearFiles(_) {
-		await invoke('clear_files', { });
+		await invoke('clear_files', {});
 	}
 
 	async function optimizeNutexb(_) {
-		await invoke('optimize_nutexb', { });
+		await invoke('optimize_nutexb', {});
 	}
-	
+
 	async function openWiki(_) {
-		await invoke('open_wiki', { });
+		await invoke('open_wiki', {});
 	}
 
 	function formatDimensions(dimensions: [number, number, number]): string {
@@ -96,8 +96,8 @@
 			<details role="list" dir="ltr">
 				<summary aria-haspopup="listbox" role="link">File</summary>
 				<ul role="listbox">
-					<li><a on:click={addFiles}>Add Files...</a></li>
-					<li><a on:click={clearFiles}>Clear Files</a></li>
+					<li><a href="#top" on:click={addFiles}>Add Files...</a></li>
+					<li><a href="#top" on:click={clearFiles}>Clear Files</a></li>
 				</ul>
 			</details>
 		</li>
@@ -105,7 +105,7 @@
 			<details role="list" dir="ltr">
 				<summary aria-haspopup="listbox" role="link">Batch</summary>
 				<ul role="listbox">
-					<li><a on:click={optimizeNutexb}>Optimize Nutexb Padding...</a></li>
+					<li><a href="#top" on:click={optimizeNutexb}>Optimize Nutexb Padding...</a></li>
 				</ul>
 			</details>
 		</li>
@@ -113,7 +113,7 @@
 			<details role="list" dir="ltr">
 				<summary aria-haspopup="listbox" role="link">Help</summary>
 				<ul role="listbox">
-					<li><a on:click={openWiki}>Wiki</a></li>
+					<li><a href="#top" on:click={openWiki}>Wiki</a></li>
 				</ul>
 			</details>
 		</li>
@@ -150,12 +150,7 @@
 			</label>
 		{/each}
 		<label for="outputType">
-			<input
-				type="radio"
-				bind:group={overrides.outputFileType}
-				name="outputType"
-				value={null}
-			/>
+			<input type="radio" bind:group={overrides.outputFileType} name="outputType" value={null} />
 			Custom...
 		</label>
 	</fieldset>
@@ -173,12 +168,7 @@
 			</label>
 		{/each}
 		<label for="outputFormat">
-			<input
-				type="radio"
-				bind:group={overrides.outputFormat}
-				name="outputFormat"
-				value={null}
-			/>
+			<input type="radio" bind:group={overrides.outputFormat} name="outputFormat" value={null} />
 			Custom...
 		</label>
 	</fieldset>
@@ -191,12 +181,7 @@
 			</label>
 		{/each}
 		<label for="mipmaps">
-			<input
-				type="radio"
-				bind:group={overrides.mipmaps}
-				name="mipmaps"
-				value={null}
-			/>
+			<input type="radio" bind:group={overrides.mipmaps} name="mipmaps" value={null} />
 			Custom...
 		</label>
 	</fieldset>
@@ -291,5 +276,20 @@
 	.flex-container {
 		display: grid;
 		grid-template-columns: 150px 150px 150px 150px;
+	}
+
+	a,
+	[role='link'] {
+		--color: var(--color);
+	}
+	a:is([aria-current], :hover, :active, :focus),
+	[role='link']:is([aria-current], :hover, :active, :focus) {
+		--color: var(--color);
+		--background-color: var(--secondary-focus);
+	}
+	a:focus,
+	[role='link']:focus {
+		--color: var(--color);
+		--background-color: var(--secondary-focus);
 	}
 </style>
