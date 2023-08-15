@@ -156,7 +156,7 @@ pub fn convert_to_nutexb(
             nutexb.write_to_file(output)?;
         }
         ImageFile::Dds(dds) => {
-            let new_dds = encode_dds(&dds, image_format, quality, mipmaps)?;
+            let new_dds = encode_dds(dds, image_format, quality, mipmaps)?;
             let nutexb = NutexbFile::from_dds(&new_dds, name)?;
             nutexb.write_to_file(output)?;
         }
@@ -198,7 +198,7 @@ pub fn convert_to_bntx(
             bntx.write_to_file(output)?;
         }
         ImageFile::Dds(dds) => {
-            let new_dds = encode_dds(&dds, image_format, quality, mipmaps)?;
+            let new_dds = encode_dds(dds, image_format, quality, mipmaps)?;
             let bntx = bntx::dds::create_bntx(&name, &new_dds)?;
             bntx.write_to_file(output)?;
         }

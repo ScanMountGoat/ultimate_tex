@@ -31,7 +31,7 @@ impl App {
     fn add_files(&mut self, files: &[PathBuf]) {
         // TODO: par_iter?
         for file in files {
-            let image = ImageFile::read(&file).unwrap();
+            let image = ImageFile::read(file).unwrap();
             let image_settings = ImageFileSettings::from_image(file.clone(), &image);
             self.files.push(image);
             self.settings.file_settings.push(image_settings);
@@ -338,16 +338,13 @@ fn main() {
                     // https://github.com/tauri-apps/tauri/issues/6322
                     std::thread::sleep(std::time::Duration::from_nanos(1));
                 }
-                WindowEvent::FileDrop(e) => match e {
-                    tauri::FileDropEvent::Dropped(new_files) => {
-                        let state = event.window().state::<AppState>();
-                        let app = &mut state.0.lock().unwrap();
+                WindowEvent::FileDrop(tauri::FileDropEvent::Dropped(new_files)) => {
+                    let state = event.window().state::<AppState>();
+                    let app = &mut state.0.lock().unwrap();
 
-                        app.add_files(new_files);
-                        event.window().emit("files_changed", "").unwrap();
-                    }
-                    _ => (),
-                },
+                    app.add_files(new_files);
+                    event.window().emit("files_changed", "").unwrap();
+                }
                 _ => (),
             }
         })
