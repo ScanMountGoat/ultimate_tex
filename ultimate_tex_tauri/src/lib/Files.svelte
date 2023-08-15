@@ -31,10 +31,10 @@
 	let compressionTypes = ['Fast', 'Normal', 'Slow'];
 
 	// Reduced options for global presets.
-	let presetFileTypes = ['Png', 'Dds', 'Nutexb', 'Bntx', 'Custom...'];
-	let presetFormatTypes = ['Color (sRGB) + Alpha', 'Color (Linear) + Alpha', 'Custom...'];
-	let presetMipmapTypes = ['Enabled', 'Disabled', 'Custom...'];
-	let presetCompressionTypes = ['Fast', 'Normal', 'Slow', 'Custom...'];
+	let presetFileTypes = ['Png', 'Dds', 'Nutexb', 'Bntx'];
+	let presetFormatTypes = ['Color (sRGB) + Alpha', 'Color (Linear) + Alpha'];
+	let presetMipmapTypes = ['Enabled', 'Disabled'];
+	let presetCompressionTypes = ['Fast', 'Normal', 'Slow'];
 
 	// TODO: Better way to just have Rust initialize this?
 	let saveInSameFolder = false;
@@ -50,22 +50,38 @@
 	let fileSettings = [];
 
 	async function loadList() {
-		fileSettings = await invoke('load_items', {});
+		fileSettings = await invoke('load_files', {});
 
 		// TODO: Where to call this?
-		await listen('items_changed', async (event) => {
-			fileSettings = await invoke('load_items', {});
+		await listen('files_changed', async (event) => {
+			fileSettings = await invoke('load_files', {});
 		});
 	}
 
 	onMount(loadList);
 
-	async function exportItems(_) {
+	async function exportFiles(_) {
 		// Pass the AppSettings to Rust in case anything changed.
 		// TODO: output folder?
 		let settings = { outputFolder: null, saveInSameFolder, overrides, fileSettings };
 		// TODO: Disable the export button until the export completes.
-		await invoke('export_items', { settings });
+		await invoke('export_files', { settings });
+	}
+
+	async function addFiles(_) {
+		await invoke('add_files', { });
+	}
+
+	async function clearFiles(_) {
+		await invoke('clear_files', { });
+	}
+
+	async function optimizeNutexb(_) {
+		await invoke('optimize_nutexb', { });
+	}
+	
+	async function openWiki(_) {
+		await invoke('open_wiki', { });
 	}
 
 	function formatDimensions(dimensions: [number, number, number]): string {
@@ -73,6 +89,37 @@
 		return `${w}x${h}x${d}`;
 	}
 </script>
+
+<nav>
+	<ul>
+		<li>
+			<details role="list" dir="ltr">
+				<summary aria-haspopup="listbox" role="link">File</summary>
+				<ul role="listbox">
+					<li><a on:click={addFiles}>Add Files...</a></li>
+					<li><a on:click={clearFiles}>Clear Files</a></li>
+				</ul>
+			</details>
+		</li>
+		<li>
+			<details role="list" dir="ltr">
+				<summary aria-haspopup="listbox" role="link">Batch</summary>
+				<ul role="listbox">
+					<li><a on:click={optimizeNutexb}>Optimize Nutexb Padding...</a></li>
+				</ul>
+			</details>
+		</li>
+		<li>
+			<details role="list" dir="ltr">
+				<summary aria-haspopup="listbox" role="link">Help</summary>
+				<ul role="listbox">
+					<li><a on:click={openWiki}>Wiki</a></li>
+				</ul>
+			</details>
+		</li>
+	</ul>
+</nav>
+<hr />
 
 <label for="checkbox-1">
 	<input type="checkbox" id="checkbox-1" name="checkbox-1" bind:checked={saveInSameFolder} />
@@ -84,7 +131,7 @@
 		<button style="width: auto; height: auto;" class="secondary">Choose Folder...</button>
 	</label>
 {/if}
-<button style="width: 150px;" on:click={exportItems}>Export</button>
+<button style="width: 150px;" on:click={exportFiles}>Export</button>
 
 <hr />
 
@@ -93,19 +140,47 @@
 		<legend><strong>Output Type</strong></legend>
 		{#each presetFileTypes as option}
 			<label for="outputType">
-				<input type="radio" bind:group={overrides.outputFileType} name="outputType" value={option} />
+				<input
+					type="radio"
+					bind:group={overrides.outputFileType}
+					name="outputType"
+					value={option}
+				/>
 				{option}
 			</label>
 		{/each}
+		<label for="outputType">
+			<input
+				type="radio"
+				bind:group={overrides.outputFileType}
+				name="outputType"
+				value={null}
+			/>
+			Custom...
+		</label>
 	</fieldset>
 	<fieldset>
 		<legend><strong>Output Format</strong></legend>
 		{#each presetFormatTypes as option}
 			<label for="outputFormat">
-				<input type="radio" bind:group={overrides.outputFormat} name="outputFormat" value={option} />
+				<input
+					type="radio"
+					bind:group={overrides.outputFormat}
+					name="outputFormat"
+					value={option}
+				/>
 				{option}
 			</label>
 		{/each}
+		<label for="outputFormat">
+			<input
+				type="radio"
+				bind:group={overrides.outputFormat}
+				name="outputFormat"
+				value={null}
+			/>
+			Custom...
+		</label>
 	</fieldset>
 	<fieldset>
 		<legend><strong>Mipmaps</strong></legend>
@@ -115,15 +190,38 @@
 				{option}
 			</label>
 		{/each}
+		<label for="mipmaps">
+			<input
+				type="radio"
+				bind:group={overrides.mipmaps}
+				name="mipmaps"
+				value={null}
+			/>
+			Custom...
+		</label>
 	</fieldset>
 	<fieldset>
 		<legend><strong>Compression</strong></legend>
 		{#each presetCompressionTypes as option}
 			<label for="compression">
-				<input type="radio" bind:group={overrides.compressionQuality} name="compression" value={option} />
+				<input
+					type="radio"
+					bind:group={overrides.compressionQuality}
+					name="compression"
+					value={option}
+				/>
 				{option}
 			</label>
 		{/each}
+		<label for="compression">
+			<input
+				type="radio"
+				bind:group={overrides.compressionQuality}
+				name="compression"
+				value={null}
+			/>
+			Custom...
+		</label>
 	</fieldset>
 </div>
 

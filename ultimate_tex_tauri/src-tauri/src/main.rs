@@ -10,9 +10,9 @@ use std::{
 use image_dds::{ImageFormat, Mipmaps, Quality};
 use rayon::prelude::*;
 use serde::{Deserialize, Serialize};
-use tauri::{CustomMenuItem, Manager, Menu, Submenu, WindowEvent};
+use tauri::{Manager, WindowEvent};
 use ultimate_tex::{
-    convert_to_bntx, convert_to_dds, convert_to_image, convert_to_nutexb, ImageFile,
+    convert_to_bntx, convert_to_dds, convert_to_image, convert_to_nutexb, ImageFile, NutexbFile,
 };
 
 #[derive(Default)]
@@ -191,13 +191,13 @@ impl ImageFileSettings {
 }
 
 #[tauri::command]
-fn load_items(state: tauri::State<AppState>) -> Vec<ImageFileSettings> {
+fn load_files(state: tauri::State<AppState>) -> Vec<ImageFileSettings> {
     // TODO: Is this the best way to pass to javascript?
     state.0.lock().unwrap().settings.file_settings.clone()
 }
 
 #[tauri::command(async)]
-async fn export_items(settings: AppSettings, handle: tauri::AppHandle) {
+async fn export_files(settings: AppSettings, handle: tauri::AppHandle) {
     tauri::async_runtime::spawn_blocking(move || {
         // TODO: Is it worth storing settings in Rust if we get it from JS anyway?
         // TODO: Log errors.
@@ -208,23 +208,67 @@ async fn export_items(settings: AppSettings, handle: tauri::AppHandle) {
     });
 }
 
-// TODO: Just do this in svelte for consistency?
-fn main_menu() -> Menu {
-    // Start by customizing a mostly native menu.
-    let mut menu = tauri::Menu::os_default("Ultimate Tex");
-    for item in &mut menu.items {
-        if let tauri::MenuEntry::Submenu(sub) = item {
-            if sub.title == "File" {
-                let add_files = CustomMenuItem::new("file_add_files", "Add Files...");
-                let clear_files = CustomMenuItem::new("file_clear_files", "Clear Files");
-                sub.inner.items = vec![
-                    tauri::MenuEntry::CustomItem(add_files),
-                    tauri::MenuEntry::CustomItem(clear_files),
-                ];
+#[tauri::command]
+fn add_files(handle: tauri::AppHandle) {
+    tauri::api::dialog::FileDialogBuilder::default()
+        .add_filter(
+            "image files",
+            &["png", "tiff", "nutexb", "bntx", "jpeg", "jpg", "dds"],
+        )
+        .pick_files(move |files| {
+            if let Some(files) = files {
+                let state = handle.state::<AppState>();
+
+                let app = &mut state.0.lock().unwrap();
+
+                app.add_files(&files);
+                handle.emit_all("files_changed", "").unwrap();
+            }
+        });
+}
+
+#[tauri::command]
+fn clear_files(handle: tauri::AppHandle) {
+    let state = handle.state::<AppState>();
+    let app = &mut state.0.lock().unwrap();
+
+    app.clear_files();
+    handle.emit_all("files_changed", "").unwrap();
+}
+
+#[tauri::command]
+fn optimize_nutexb() {
+    tauri::api::dialog::FileDialogBuilder::default()
+        .set_title("Select Nutexb Root Folder")
+        .pick_folder(|folder| {
+            if let Some(folder) = folder {
+                optimize_nutexb_files_recursive(&folder);
+            }
+        });
+}
+
+#[tauri::command]
+fn open_wiki() {
+    if let Err(_) = open::that("https://github.com/ScanMountGoat/ultimate_tex/wiki") {
+        // TODO: log errors
+    }
+}
+
+fn optimize_nutexb_files_recursive(root: &Path) {
+    // TODO: recursively search folders and call nutexb.optimize
+    for entry in globwalk::GlobWalkerBuilder::from_patterns(root, &["*.{nutexb}"])
+        .build()
+        .unwrap()
+        .filter_map(Result::ok)
+    {
+        if let Ok(mut nutexb) = NutexbFile::read_from_file(entry.path()) {
+            nutexb.optimize_size();
+            // TODO: Avoid unwrap.
+            if let Err(_) = nutexb.write_to_file(entry.path()) {
+                // TODO: log errors
             }
         }
     }
-    menu
 }
 
 fn convert_and_save_file(
@@ -280,39 +324,12 @@ fn main() {
                         app.files.remove(index);
                         app.settings.file_settings.remove(index);
 
-                        handle.emit_to("main", "items_changed", "").unwrap();
+                        handle.emit_to("main", "files_changed", "").unwrap();
                     }
                 }
             });
 
             Ok(())
-        })
-        .menu(main_menu())
-        .on_menu_event(|event| match event.menu_item_id() {
-            "file_add_files" => {
-                tauri::api::dialog::FileDialogBuilder::default()
-                    .add_filter(
-                        "image files",
-                        &["png", "tiff", "nutexb", "bntx", "jpeg", "jpg", "dds"],
-                    )
-                    .pick_files(move |files| {
-                        if let Some(files) = files {
-                            let state = event.window().state::<AppState>();
-                            let app = &mut state.0.lock().unwrap();
-
-                            app.add_files(&files);
-                            event.window().emit("items_changed", "").unwrap();
-                        }
-                    });
-            }
-            "file_clear_files" => {
-                let state = event.window().state::<AppState>();
-                let app = &mut state.0.lock().unwrap();
-
-                app.clear_files();
-                event.window().emit("items_changed", "").unwrap();
-            }
-            _ => (),
         })
         .on_window_event(|event| {
             match event.event() {
@@ -327,14 +344,21 @@ fn main() {
                         let app = &mut state.0.lock().unwrap();
 
                         app.add_files(new_files);
-                        event.window().emit("items_changed", "").unwrap();
+                        event.window().emit("files_changed", "").unwrap();
                     }
                     _ => (),
                 },
                 _ => (),
             }
         })
-        .invoke_handler(tauri::generate_handler![load_items, export_items])
+        .invoke_handler(tauri::generate_handler![
+            add_files,
+            clear_files,
+            export_files,
+            load_files,
+            open_wiki,
+            optimize_nutexb
+        ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }
