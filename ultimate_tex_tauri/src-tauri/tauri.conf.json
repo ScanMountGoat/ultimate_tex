@@ -6,7 +6,7 @@
     "distDir": "../build"
   },
   "package": {
-    "productName": "ultimate_tex_tauri",
+    "productName": "ultimate_tex",
     "version": "0.0.0"
   },
   "tauri": {
@@ -25,7 +25,13 @@
         "depends": []
       },
       "externalBin": [],
-      "icon": [],
+      "icon": [
+        "icons/32x32.png",
+        "icons/128x128.png",
+        "icons/128x128@2x.png",
+        "icons/icon.icns",
+        "icons/icon.ico"
+      ],
       "identifier": "com.tauri.dev.ultimate-tex-tauri",
       "longDescription": "",
       "macOS": {
