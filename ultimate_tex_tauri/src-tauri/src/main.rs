@@ -1,5 +1,5 @@
 // Prevents additional console window on Windows in release, DO NOT REMOVE!!
-#![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
+// #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
 use std::{
     error::Error,
@@ -29,13 +29,21 @@ struct App {
 
 impl App {
     fn add_files(&mut self, files: &[PathBuf]) {
-        // TODO: par_iter?
-        for file in files {
-            let image = ImageFile::read(file).unwrap();
-            let image_settings = ImageFileSettings::from_image(file.clone(), &image);
-            self.files.push(image);
-            self.settings.file_settings.push(image_settings);
+        let start = std::time::Instant::now();
+
+        // Only the expensive file reading benefits from parallelism.
+        let new_files: Vec<_> = files
+            .par_iter()
+            .map(|file| ImageFile::read(file).unwrap())
+            .collect();
+        for (file, image) in files.iter().zip(new_files.iter()) {
+            self.settings
+                .file_settings
+                .push(ImageFileSettings::from_image(file.clone(), image));
         }
+        self.files.extend(new_files);
+
+        println!("Added {} files in {:?}", files.len(), start.elapsed());
     }
 
     fn clear_files(&mut self) {
