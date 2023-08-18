@@ -38,6 +38,7 @@
 
 	// TODO: Better way to just have Rust initialize this?
 	let saveInSameFolder = false;
+	// TODO: properly center this text.
 	let outputFolder = null;
 
 	// TODO: set proper defaults.
@@ -136,17 +137,24 @@
 </nav>
 <hr />
 
-<label for="checkbox-1">
-	<input type="checkbox" id="checkbox-1" name="checkbox-1" bind:checked={saveInSameFolder} />
+<label for="saveInSameFolder">
+	<input
+		type="checkbox"
+		id="saveInSameFolder"
+		name="saveInSameFolder"
+		bind:checked={saveInSameFolder}
+	/>
 	Save to original folder
 </label>
 {#if !saveInSameFolder}
-	<label for="outputLocation"
-		>Output Location
-		<button style="width: auto; height: auto;" class="secondary" on:click={selectFolder}
-			>Choose Folder...</button
-		>
-	</label>
+	<div class="file-container">
+		<button style="width: auto;" class="secondary" on:click={selectFolder}>
+			Select Folder...
+		</button>
+		<div class="file-text">
+			{outputFolder ?? 'No folder selected'}
+		</div>
+	</div>
 {/if}
 <button style="width: 150px;" on:click={exportFiles}>Export</button>
 
@@ -290,6 +298,24 @@
 </figure>
 
 <style>
+	nav {
+		height: 15px;
+	}
+
+	.file-container {
+		display: flex;
+		justify-content: start;
+		align-content: center;
+		align-items: center;
+	}
+
+	.file-text {
+		color: var(--muted-color);
+		height: 100%;
+		text-align: center;
+		margin: 5px;
+	}
+
 	.flex-container {
 		display: grid;
 		grid-template-columns: 150px 150px 150px 150px;
