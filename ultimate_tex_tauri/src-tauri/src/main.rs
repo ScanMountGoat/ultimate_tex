@@ -57,31 +57,18 @@ impl App {
             .file_settings
             .par_iter()
             .zip(self.files.par_iter())
-            .map(|(settings, file)| {
-                // TODO: find a simpler way to write this.
-                if let Some(file_output_folder) = if self.settings.save_in_same_folder {
-                    settings.path.parent().map(PathBuf::from)
+            .filter_map(|(settings, file)| {
+                let output = if self.settings.save_in_same_folder {
+                    settings.path.parent()
                 } else {
-                    self.settings.output_folder.to_owned()
-                } {
-                    match convert_and_save_file(
-                        &file_output_folder,
-                        settings,
-                        file,
-                        &self.settings.overrides,
-                    ) {
-                        Ok(_) => 1,
-                        Err(e) => {
-                            // TODO: Log errors.
-                            println!("Error converting {:?}: {e}", settings.path);
-                            0
-                        }
-                    }
-                } else {
-                    0
-                }
+                    self.settings.output_folder.as_deref()
+                };
+
+                output.and_then(|output| {
+                    convert_and_save_file(output, settings, file, &self.settings.overrides).ok()
+                })
             })
-            .sum();
+            .count();
 
         println!(
             "Converted {} files in {:?}",
@@ -197,15 +184,21 @@ fn load_files(state: tauri::State<AppState>) -> Vec<ImageFileSettings> {
 }
 
 #[tauri::command(async)]
-async fn export_files(settings: AppSettings, handle: tauri::AppHandle) {
+async fn export_files(
+    settings: AppSettings,
+    handle: tauri::AppHandle,
+) -> Result<usize, tauri::Error> {
+    // TODO: Return information to JS for displaying in a bottom bar?
     tauri::async_runtime::spawn_blocking(move || {
         // TODO: Is it worth storing settings in Rust if we get it from JS anyway?
         // TODO: Log errors.
         let state = handle.state::<AppState>();
         let app = &mut state.0.lock().unwrap();
         app.settings = settings;
-        app.convert_and_export_files().unwrap();
-    });
+        // TODO: Avoid unwrap?
+        app.convert_and_export_files().unwrap()
+    })
+    .await
 }
 
 #[tauri::command]
@@ -248,6 +241,23 @@ fn optimize_nutexb() {
 }
 
 #[tauri::command]
+fn select_output_folder(handle: tauri::AppHandle) -> Option<PathBuf> {
+    // TODO: how to return the selected folder to JS?
+    // TODO: Just emit an event to indicate the value changed?
+    tauri::api::dialog::FileDialogBuilder::default()
+        .set_title("Select Output Folder")
+        .pick_folder(move |folder| {
+            if let Some(folder) = folder {
+                let state = handle.state::<AppState>();
+                let app = &mut state.0.lock().unwrap();
+                app.settings.output_folder = Some(folder);
+            }
+        });
+
+    None
+}
+
+#[tauri::command]
 fn open_wiki() {
     if let Err(_) = open::that("https://github.com/ScanMountGoat/ultimate_tex/wiki") {
         // TODO: log errors
@@ -255,7 +265,6 @@ fn open_wiki() {
 }
 
 fn optimize_nutexb_files_recursive(root: &Path) {
-    // TODO: recursively search folders and call nutexb.optimize
     for entry in globwalk::GlobWalkerBuilder::from_patterns(root, &["*.{nutexb}"])
         .build()
         .unwrap()
@@ -354,7 +363,8 @@ fn main() {
             export_files,
             load_files,
             open_wiki,
-            optimize_nutexb
+            optimize_nutexb,
+            select_output_folder
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

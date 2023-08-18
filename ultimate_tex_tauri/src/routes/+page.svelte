@@ -38,6 +38,7 @@
 
 	// TODO: Better way to just have Rust initialize this?
 	let saveInSameFolder = false;
+	let outputFolder = null;
 
 	// TODO: set proper defaults.
 	let overrides = {
@@ -63,7 +64,7 @@
 	async function exportFiles(_) {
 		// Pass the AppSettings to Rust in case anything changed.
 		// TODO: output folder?
-		let settings = { outputFolder: null, saveInSameFolder, overrides, fileSettings };
+		let settings = { outputFolder, saveInSameFolder, overrides, fileSettings };
 		// TODO: Disable the export button until the export completes.
 		await invoke('export_files', { settings });
 	}
@@ -84,10 +85,24 @@
 		await invoke('open_wiki', {});
 	}
 
+	async function selectFolder(_) {
+		outputFolder = await invoke('select_output_folder', {});
+	}
+
 	function formatDimensions(dimensions: [number, number, number]): string {
 		let [w, h, d] = dimensions;
 		return `${w}x${h}x${d}`;
 	}
+
+	window.onclick = function (e) {
+		// Close menus when clicking menu options.
+		if (e.target.tagName == 'A') {
+			console.log(e.target.tagName);
+			for (const element of document.getElementsByTagName('details')) {
+				element.open = false;
+			}
+		}
+	};
 </script>
 
 <nav>
@@ -128,7 +143,9 @@
 {#if !saveInSameFolder}
 	<label for="outputLocation"
 		>Output Location
-		<button style="width: auto; height: auto;" class="secondary">Choose Folder...</button>
+		<button style="width: auto; height: auto;" class="secondary" on:click={selectFolder}
+			>Choose Folder...</button
+		>
 	</label>
 {/if}
 <button style="width: 150px;" on:click={exportFiles}>Export</button>
@@ -291,5 +308,8 @@
 	[role='link']:focus {
 		--color: var(--color);
 		--background-color: var(--secondary-focus);
+	}
+	details summary:focus:not([role='button']) {
+		color: var(--color);
 	}
 </style>
