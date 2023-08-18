@@ -98,7 +98,6 @@
 	window.onclick = function (e) {
 		// Close menus when clicking menu options.
 		if (e.target.tagName == 'A') {
-			console.log(e.target.tagName);
 			for (const element of document.getElementsByTagName('details')) {
 				element.open = false;
 			}
@@ -250,7 +249,7 @@
 			</tr>
 		</thead>
 		<tbody>
-			{#each fileSettings as item}
+			{#each fileSettings as item, index}
 				<tr>
 					<th scope="row">{item.name}</th>
 					<th>{item.outputFormat}</th>
@@ -287,7 +286,7 @@
 						<button
 							class="secondary"
 							on:click={(_) => {
-								emit('remove_item', item.name);
+								emit('remove_item', index);
 							}}>Remove</button
 						>
 					</th>

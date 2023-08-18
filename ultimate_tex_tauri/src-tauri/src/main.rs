@@ -317,24 +317,16 @@ fn main() {
 
             let handle = app.handle();
             main_window.listen("remove_item", move |event| {
-                if let Some(name) = event
+                if let Some(index) = event
                     .payload()
-                    .and_then(|s| serde_json::from_str::<String>(s).ok())
+                    .and_then(|s| serde_json::from_str::<usize>(s).ok())
                 {
-                    // TODO: Simpler way to remove the item with the given name?
                     let state = handle.state::<AppState>();
                     let app = &mut state.0.lock().unwrap();
-                    if let Some(index) = app
-                        .settings
-                        .file_settings
-                        .iter()
-                        .position(|s| s.name == name)
-                    {
-                        app.files.remove(index);
-                        app.settings.file_settings.remove(index);
 
-                        handle.emit_to("main", "files_changed", "").unwrap();
-                    }
+                    app.files.remove(index);
+                    app.settings.file_settings.remove(index);
+                    handle.emit_to("main", "files_changed", "").unwrap();
                 }
             });
 
