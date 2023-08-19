@@ -249,9 +249,7 @@ fn optimize_nutexb() {
 }
 
 #[tauri::command]
-fn select_output_folder(handle: tauri::AppHandle) -> Option<PathBuf> {
-    // TODO: how to return the selected folder to JS?
-    // TODO: Just emit an event to indicate the value changed?
+fn select_output_folder(handle: tauri::AppHandle) {
     tauri::api::dialog::FileDialogBuilder::default()
         .set_title("Select Output Folder")
         .pick_folder(move |folder| {
@@ -259,10 +257,10 @@ fn select_output_folder(handle: tauri::AppHandle) -> Option<PathBuf> {
                 let state = handle.state::<AppState>();
                 let app = &mut state.0.lock().unwrap();
                 app.settings.output_folder = Some(folder);
+                // Use an event since we can't return from the callback.
+                handle.emit_all("output_folder_changed", &app.settings.output_folder);
             }
         });
-
-    None
 }
 
 #[tauri::command]
@@ -334,7 +332,7 @@ fn main() {
 
                     app.files.remove(index);
                     app.settings.file_settings.remove(index);
-                    handle.emit_to("main", "files_changed", "").unwrap();
+                    handle.emit_all("files_changed", "").unwrap();
                 }
             });
 

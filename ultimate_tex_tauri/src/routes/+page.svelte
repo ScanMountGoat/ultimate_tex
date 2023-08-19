@@ -51,20 +51,21 @@
 
 	let fileSettings = [];
 
-	async function loadList() {
+	async function initializeApp() {
 		fileSettings = await invoke('load_files', {});
 
-		// TODO: Where to call this?
 		await listen('files_changed', async (event) => {
 			fileSettings = await invoke('load_files', {});
 		});
+		await listen('output_folder_changed', async (event) => {
+			outputFolder = event.payload;
+		});
 	}
 
-	onMount(loadList);
+	onMount(initializeApp);
 
 	async function exportFiles(_) {
 		// Pass the AppSettings to Rust in case anything changed.
-		// TODO: output folder?
 		let settings = { outputFolder, saveInSameFolder, overrides, fileSettings };
 		// TODO: Disable the export button until the export completes.
 		await invoke('export_files', { settings });
@@ -155,7 +156,12 @@
 		</div>
 	</div>
 {/if}
-<button style="width: 150px;" on:click={exportFiles}>Export</button>
+<button
+	style="width: 150px;"
+	on:click={exportFiles}
+	disabled={outputFolder == null && !saveInSameFolder}
+	>Export
+</button>
 
 <hr />
 
