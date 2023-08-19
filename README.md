@@ -29,8 +29,9 @@ A library for conversion functionality shared between the GUI and CLI programs.
 
 ## Building
 With a newer version of the Rust toolchain installed, run `cargo build --release`. 
-Don't forget the `--release` since debug builds in Rust will run slowly. 
-The image_dds crate compiles C/C++ code for the encoders and decoders and requires C/C++ tooling installed.
+Don't forget the `--release` since debug builds in Rust will run slowly. The image_dds crate compiles C/C++ code for the encoders and decoders and requires C/C++ tooling installed. image_dds uses precompiled kernels for some image encoding operations, so not all platforms and architectures are supported.
+
+The ultimate_tex_tauri application requires additional tools to build and run. See the [getting started guide](https://tauri.app/v1/guides/getting-started/prerequisites) for details. The guide also covers installing necessary packages on Linux. The frontend uses Javascript and requires installing a newer version of [npm](https://docs.npmjs.com/downloading-and-installing-node-js-and-npm). Run `npm install` once from the `ultimate_tex_tauri` directory to install the necessary Javascript packages. The easiest way to run the app locally is to install the tauri CLI tools with `cargo install tauri-cli` and then run `cargo tauri dev` also from the `ultimate_tex_tauri` directory.
 
 ## Credits
 - [nutexb](https://github.com/jam1garner/nutexb)
