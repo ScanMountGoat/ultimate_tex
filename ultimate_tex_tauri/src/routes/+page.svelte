@@ -294,9 +294,18 @@
 			{/each}
 		</tbody>
 	</table>
+	{#if fileSettings.length == 0}
+		<div class="center">
+			Drag and drop image files onto the window or add files using File > Add Files...
+		</div>
+	{/if}
 </figure>
 
 <style>
+	.center {
+		text-align: center;
+	}
+
 	nav {
 		height: 15px;
 	}
