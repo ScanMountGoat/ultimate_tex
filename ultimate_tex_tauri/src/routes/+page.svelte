@@ -80,6 +80,10 @@
 		return `${w}x${h}x${d}`;
 	}
 
+	function isUncompressed(item): boolean {
+		return item.outputFileType == 'Png' || item.outputFileType == 'Tiff';
+	}
+
 	window.onclick = function (e) {
 		// Close menus when clicking menu options.
 		if (e.target.tagName == 'A') {
@@ -252,25 +256,31 @@
 						</select>
 					</th>
 					<th>
-						<select bind:value={item.format}>
-							{#each formatTypes as option}
-								<option value={option}>{option}</option>
-							{/each}
-						</select>
+						{#if !isUncompressed(item)}
+							<select bind:value={item.format}>
+								{#each formatTypes as option}
+									<option value={option}>{option}</option>
+								{/each}
+							</select>
+						{/if}
 					</th>
 					<th>
-						<select bind:value={item.outputQuality}>
-							{#each compressionTypes as option}
-								<option value={option}>{option}</option>
-							{/each}
-						</select>
+						{#if !isUncompressed(item)}
+							<select bind:value={item.outputQuality}>
+								{#each compressionTypes as option}
+									<option value={option}>{option}</option>
+								{/each}
+							</select>
+						{/if}
 					</th>
 					<th>
-						<select bind:value={item.outputMipmaps}>
-							{#each mipmapTypes as option}
-								<option value={option}>{option}</option>
-							{/each}
-						</select>
+						{#if !isUncompressed(item)}
+							<select bind:value={item.outputMipmaps}>
+								{#each mipmapTypes as option}
+									<option value={option}>{option}</option>
+								{/each}
+							</select>
+						{/if}
 					</th>
 					<th>
 						<button
