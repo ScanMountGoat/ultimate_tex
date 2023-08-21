@@ -10,6 +10,7 @@ use std::{
 use image_dds::{ImageFormat, Mipmaps, Quality};
 use rayon::prelude::*;
 use serde::{Deserialize, Serialize};
+use strum::IntoEnumIterator;
 use tauri::{Manager, WindowEvent};
 use ultimate_tex::{
     convert_to_bntx, convert_to_dds, convert_to_image, convert_to_nutexb, ImageFile, NutexbFile,
@@ -118,7 +119,7 @@ impl Default for FileSettingsOverrides {
     }
 }
 
-#[derive(Serialize, Deserialize, PartialEq, Clone, Copy)]
+#[derive(Serialize, Deserialize, PartialEq, Clone, Copy, strum::Display, strum::EnumIter)]
 enum ImageFileType {
     Dds,
     Png,
@@ -258,7 +259,9 @@ fn select_output_folder(handle: tauri::AppHandle) {
                 let app = &mut state.0.lock().unwrap();
                 app.settings.output_folder = Some(folder);
                 // Use an event since we can't return from the callback.
-                handle.emit_all("output_folder_changed", &app.settings.output_folder);
+                handle
+                    .emit_all("output_folder_changed", &app.settings.output_folder)
+                    .unwrap();
             }
         });
 }
@@ -268,6 +271,26 @@ fn open_wiki() {
     if let Err(_) = open::that("https://github.com/ScanMountGoat/ultimate_tex/wiki") {
         // TODO: log errors
     }
+}
+
+#[tauri::command]
+fn image_format_variants() -> Vec<ImageFormat> {
+    ImageFormat::iter().collect()
+}
+
+#[tauri::command]
+fn mipmaps_variants() -> Vec<Mipmaps> {
+    Mipmaps::iter().collect()
+}
+
+#[tauri::command]
+fn image_file_type_variants() -> Vec<ImageFileType> {
+    ImageFileType::iter().collect()
+}
+
+#[tauri::command]
+fn quality_variants() -> Vec<Quality> {
+    Quality::iter().collect()
 }
 
 fn optimize_nutexb_files_recursive(root: &Path) {
@@ -359,9 +382,13 @@ fn main() {
             add_files,
             clear_files,
             export_files,
+            image_file_type_variants,
+            image_format_variants,
             load_files,
+            mipmaps_variants,
             open_wiki,
             optimize_nutexb,
+            quality_variants,
             select_output_folder
         ])
         .run(tauri::generate_context!())

@@ -186,7 +186,7 @@ checksum = "604178f6c5c21f02dc555784810edfb88d34ac2c73b2eae109655649ee73ce3d"
 [[package]]
 name = "bcndecode-sys"
 version = "0.1.0"
-source = "git+https://github.com/ScanMountGoat/image_dds?rev=809c447#809c44797122c95c9a30f4e523d556e804c8e806"
+source = "git+https://github.com/ScanMountGoat/image_dds?rev=7e2cc26#7e2cc267af566fc78e689b26bb823892671d381b"
 dependencies = [
  "cc",
 ]
@@ -1566,7 +1566,7 @@ dependencies = [
 [[package]]
 name = "image_dds"
 version = "0.1.1"
-source = "git+https://github.com/ScanMountGoat/image_dds?rev=809c447#809c44797122c95c9a30f4e523d556e804c8e806"
+source = "git+https://github.com/ScanMountGoat/image_dds?rev=7e2cc26#7e2cc267af566fc78e689b26bb823892671d381b"
 dependencies = [
  "bcndecode-sys",
  "bytemuck",
@@ -3604,6 +3604,7 @@ dependencies = [
  "rayon",
  "serde",
  "serde_json",
+ "strum",
  "tauri",
  "tauri-build",
  "ultimate_tex",

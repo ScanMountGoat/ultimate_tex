@@ -3,32 +3,11 @@
 	import { emit, listen } from '@tauri-apps/api/event';
 	import { onMount } from 'svelte';
 
-	// TODO: Get these from Rust using strum?
-	let fileTypes = ['Dds', 'Png', 'Tiff', 'Nutexb', 'Bntx'];
-	let formatTypes = [
-		'R8Unorm',
-		'R8G8B8A8Unorm',
-		'R8G8B8A8Srgb',
-		'R32G32B32A32Float',
-		'B8G8R8A8Unorm',
-		'B8G8R8A8Srgb',
-		'BC1Unorm',
-		'BC1Srgb',
-		'BC2Unorm',
-		'BC2Srgb',
-		'BC3Unorm',
-		'BC3Srgb',
-		'BC4Unorm',
-		'BC4Snorm',
-		'BC5Unorm',
-		'BC5Snorm',
-		'BC6Ufloat',
-		'BC6Sfloat',
-		'BC7Unorm',
-		'BC7Srgb'
-	];
-	let mipmapTypes = ['Disabled', 'FromSurface', 'GeneratedAutomatic'];
-	let compressionTypes = ['Fast', 'Normal', 'Slow'];
+	// Initialized from Rust enum variants.
+	let fileTypes = [];
+	let formatTypes = [];
+	let mipmapTypes = [];
+	let compressionTypes = [];
 
 	// Reduced options for global presets.
 	let presetFileTypes = ['Png', 'Dds', 'Nutexb', 'Bntx'];
@@ -52,6 +31,11 @@
 	let fileSettings = [];
 
 	async function initializeApp() {
+		fileTypes = await invoke('image_file_type_variants', {});
+		formatTypes = await invoke('image_format_variants', {});
+		mipmapTypes = await invoke('mipmaps_variants', {});
+		compressionTypes = await invoke('quality_variants', {});
+
 		fileSettings = await invoke('load_files', {});
 
 		await listen('files_changed', async (event) => {
