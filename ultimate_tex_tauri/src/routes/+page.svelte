@@ -88,6 +88,10 @@
 
 	function isCompressed(item: any): boolean {
 		let fileType = overrides.outputFileType ?? item.outputFileType;
+		return isCompressedType(fileType);
+	}
+
+	function isCompressedType(fileType: string): boolean {
 		return fileType != 'Png' && fileType != 'Tiff';
 	}
 
@@ -186,7 +190,7 @@
 			Custom...
 		</label>
 	</fieldset>
-	<fieldset>
+	<fieldset disabled={!isCompressedType(overrides.outputFileType)}>
 		<legend><strong>Output Format</strong></legend>
 		{#each presetFormatTypes as option}
 			<label for="outputFormat{option}">
@@ -211,7 +215,7 @@
 			Custom...
 		</label>
 	</fieldset>
-	<fieldset>
+	<fieldset disabled={!isCompressedType(overrides.outputFileType)}>
 		<legend><strong>Mipmaps</strong></legend>
 		{#each presetMipmapTypes as option}
 			<label for="mipmaps{option}">
@@ -236,7 +240,7 @@
 			Custom...
 		</label>
 	</fieldset>
-	<fieldset>
+	<fieldset disabled={!isCompressedType(overrides.outputFileType)}>
 		<legend><strong>Compression</strong></legend>
 		{#each presetCompressionTypes as option}
 			<label for="compression{option}">
@@ -350,10 +354,6 @@
 		bottom: 0;
 		width: 100%;
 		margin-bottom: 10px;
-	}
-
-	.center {
-		text-align: center;
 	}
 
 	nav {
