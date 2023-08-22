@@ -61,7 +61,6 @@
         "fullscreen": false,
         "height": 600,
         "resizable": true,
-        "title": "ultimate_tex_tauri",
         "width": 800
       }
     ]
