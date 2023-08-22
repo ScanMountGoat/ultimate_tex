@@ -15,13 +15,15 @@ jobs:
       uses: actions/setup-node@v3
       with:
         node-version: 16
+    - name: Install Tauri
+      run: cargo install tauri-cli
     - name: Build
       run: |
         cd ultimate_tex_tauri
         npm install
-        cargo build
+        cargo tauri build --bundles none
     - name: Upload Zip
       uses: actions/upload-artifact@v3
       with:
         name: Release
-        path: target/release/ultimate_tex_tauri.exe
+        path: target/release/ultimate_tex.exe
