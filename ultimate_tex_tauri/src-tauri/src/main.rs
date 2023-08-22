@@ -280,7 +280,9 @@ fn image_format_variants() -> Vec<ImageFormat> {
 
 #[tauri::command]
 fn mipmaps_variants() -> Vec<Mipmaps> {
-    Mipmaps::iter().collect()
+    Mipmaps::iter()
+        .filter(|m| !matches!(m, Mipmaps::GeneratedExact(_)))
+        .collect()
 }
 
 #[tauri::command]

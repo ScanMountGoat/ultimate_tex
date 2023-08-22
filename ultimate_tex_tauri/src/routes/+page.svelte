@@ -80,8 +80,9 @@
 		return `${w}x${h}x${d}`;
 	}
 
-	function isUncompressed(item): boolean {
-		return item.outputFileType == 'Png' || item.outputFileType == 'Tiff';
+	function isCompressed(item: any): boolean {
+		let fileType = overrides.outputFileType ?? item.outputFileType;
+		return fileType != 'Png' && fileType != 'Tiff';
 	}
 
 	window.onclick = function (e) {
@@ -157,69 +158,97 @@
 	<fieldset>
 		<legend><strong>Output Type</strong></legend>
 		{#each presetFileTypes as option}
-			<label for="outputType">
+			<label for="outputType{option}">
 				<input
 					type="radio"
 					bind:group={overrides.outputFileType}
+					id="outputType{option}"
 					name="outputType"
 					value={option}
 				/>
 				{option}
 			</label>
 		{/each}
-		<label for="outputType">
-			<input type="radio" bind:group={overrides.outputFileType} name="outputType" value={null} />
+		<label for="outputTypeNull">
+			<input
+				type="radio"
+				bind:group={overrides.outputFileType}
+				id="outputTypeNull"
+				name="outputType"
+				value={null}
+			/>
 			Custom...
 		</label>
 	</fieldset>
 	<fieldset>
 		<legend><strong>Output Format</strong></legend>
 		{#each presetFormatTypes as option}
-			<label for="outputFormat">
+			<label for="outputFormat{option}">
 				<input
 					type="radio"
 					bind:group={overrides.outputFormat}
+					id="outputFormat{option}"
 					name="outputFormat"
 					value={option}
 				/>
 				{option}
 			</label>
 		{/each}
-		<label for="outputFormat">
-			<input type="radio" bind:group={overrides.outputFormat} name="outputFormat" value={null} />
+		<label for="outputFormatNull">
+			<input
+				type="radio"
+				bind:group={overrides.outputFormat}
+				id="outputFormatNull"
+				name="outputFormat"
+				value={null}
+			/>
 			Custom...
 		</label>
 	</fieldset>
 	<fieldset>
 		<legend><strong>Mipmaps</strong></legend>
 		{#each presetMipmapTypes as option}
-			<label for="mipmaps">
-				<input type="radio" bind:group={overrides.mipmaps} name="mipmaps" value={option} />
+			<label for="mipmaps{option}">
+				<input
+					type="radio"
+					bind:group={overrides.mipmaps}
+					id="mipmaps{option}"
+					name="mipmaps"
+					value={option}
+				/>
 				{option}
 			</label>
 		{/each}
-		<label for="mipmaps">
-			<input type="radio" bind:group={overrides.mipmaps} name="mipmaps" value={null} />
+		<label for="mipmapsNull">
+			<input
+				type="radio"
+				bind:group={overrides.mipmaps}
+				id="mipmapsNull"
+				name="mipmaps"
+				value={null}
+			/>
 			Custom...
 		</label>
 	</fieldset>
 	<fieldset>
 		<legend><strong>Compression</strong></legend>
 		{#each presetCompressionTypes as option}
-			<label for="compression">
+			<label for="compression{option}">
 				<input
 					type="radio"
 					bind:group={overrides.compressionQuality}
+					id="compression{option}"
 					name="compression"
 					value={option}
 				/>
 				{option}
 			</label>
 		{/each}
-		<label for="compression">
+		<label for="compressionNull">
 			<input
 				type="radio"
 				bind:group={overrides.compressionQuality}
+				id="compressionNull"
 				name="compression"
 				value={null}
 			/>
@@ -249,38 +278,41 @@
 					<th>{item.outputFormat}</th>
 					<th>{formatDimensions(item.dimensions)}</th>
 					<th>
-						<select bind:value={item.outputFileType}>
+						<select bind:value={item.outputFileType} disabled={overrides.outputFileType != null}>
 							{#each fileTypes as option}
 								<option value={option}>{option}</option>
 							{/each}
 						</select>
 					</th>
 					<th>
-						{#if !isUncompressed(item)}
-							<select bind:value={item.format}>
-								{#each formatTypes as option}
-									<option value={option}>{option}</option>
-								{/each}
-							</select>
-						{/if}
+						<select
+							bind:value={item.format}
+							disabled={overrides.outputFormat != null || !isCompressed(item)}
+						>
+							{#each formatTypes as option}
+								<option value={option}>{option}</option>
+							{/each}
+						</select>
 					</th>
 					<th>
-						{#if !isUncompressed(item)}
-							<select bind:value={item.outputQuality}>
-								{#each compressionTypes as option}
-									<option value={option}>{option}</option>
-								{/each}
-							</select>
-						{/if}
+						<select
+							bind:value={item.outputQuality}
+							disabled={overrides.compressionQuality != null || !isCompressed(item)}
+						>
+							{#each compressionTypes as option}
+								<option value={option}>{option}</option>
+							{/each}
+						</select>
 					</th>
 					<th>
-						{#if !isUncompressed(item)}
-							<select bind:value={item.outputMipmaps}>
-								{#each mipmapTypes as option}
-									<option value={option}>{option}</option>
-								{/each}
-							</select>
-						{/if}
+						<select
+							bind:value={item.outputMipmaps}
+							disabled={overrides.mipmaps != null || !isCompressed(item)}
+						>
+							{#each mipmapTypes as option}
+								<option value={option}>{option}</option>
+							{/each}
+						</select>
 					</th>
 					<th>
 						<button
