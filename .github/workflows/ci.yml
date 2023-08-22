@@ -7,7 +7,7 @@ env:
   CARGO_TERM_COLOR: always
 
 jobs:
-  build-linux:
+  build-windows:
     runs-on: windows-latest
     steps:
     - uses: actions/checkout@v3
@@ -16,7 +16,10 @@ jobs:
       with:
         node-version: 16
     - name: Build
-      run: cd ultimate_tex_tauri && cargo build --release
+      run: |
+        cd ultimate_tex_tauri
+        npm install
+        cargo build
     - name: Upload Zip
       uses: actions/upload-artifact@v3
       with:
