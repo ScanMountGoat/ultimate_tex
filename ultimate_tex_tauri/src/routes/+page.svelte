@@ -17,7 +17,6 @@
 
 	// TODO: Better way to just have Rust initialize this?
 	let saveInSameFolder = false;
-	// TODO: properly center this text.
 	let outputFolder = null;
 
 	// TODO: set proper defaults.
@@ -29,6 +28,10 @@
 	};
 
 	let fileSettings = [];
+
+	let isExporting = false;
+
+	let footerText = '';
 
 	async function initializeApp() {
 		fileTypes = await invoke('image_file_type_variants', {});
@@ -51,8 +54,11 @@
 	async function exportFiles(_) {
 		// Pass the AppSettings to Rust in case anything changed.
 		let settings = { outputFolder, saveInSameFolder, overrides, fileSettings };
-		// TODO: Disable the export button until the export completes.
-		await invoke('export_files', { settings });
+		// Disable the export button until the export completes.
+		isExporting = true;
+		let count = await invoke('export_files', { settings });
+		footerText = `Successfully converted ${count} of ${fileSettings.length} file(s)`;
+		isExporting = false;
 	}
 
 	async function addFiles(_) {
@@ -148,7 +154,7 @@
 <button
 	style="width: 150px;"
 	on:click={exportFiles}
-	disabled={outputFolder == null && !saveInSameFolder}
+	disabled={(outputFolder == null && !saveInSameFolder) || isExporting}
 	>Export
 </button>
 
@@ -327,13 +333,25 @@
 		</tbody>
 	</table>
 	{#if fileSettings.length == 0}
-		<div class="center">
+		<div style="text-align: center">
 			Drag and drop image files onto the window or add files using File > Add Files...
 		</div>
 	{/if}
 </figure>
 
+<footer>
+	<hr />
+	{footerText}
+</footer>
+
 <style>
+	footer {
+		position: fixed;
+		bottom: 0;
+		width: 100%;
+		margin-bottom: 10px;
+	}
+
 	.center {
 		text-align: center;
 	}
