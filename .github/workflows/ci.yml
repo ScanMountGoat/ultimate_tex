@@ -7,29 +7,31 @@ env:
   CARGO_TERM_COLOR: always
 
 jobs:
-  # build-windows:
-  #   runs-on: windows-latest
-  #   steps:
-  #   - uses: actions/checkout@v3
-  #   - name: setup node
-  #     uses: actions/setup-node@v3
-  #     with:
-  #       node-version: 16
-  #   - name: Install Tauri
-  #     uses: baptiste0928/cargo-install@v2
-  #     with:
-  #       crate: tauri-cli
-  #       version: "1.4"
-  #   - name: Build
-  #     run: |
-  #       cd ultimate_tex_tauri
-  #       npm install
-  #       cargo tauri build --bundles none
-  #   - name: Upload Zip
-  #     uses: actions/upload-artifact@v3
-  #     with:
-  #       name: ultimate_tex_v0.2.0_win_x64
-  #       path: target/release/ultimate_tex.exe
+  build-windows:
+    runs-on: windows-latest
+    steps:
+    - uses: actions/checkout@v3
+    - name: setup node
+      uses: actions/setup-node@v3
+      with:
+        node-version: 16
+    - name: Install Tauri
+      uses: baptiste0928/cargo-install@v2
+      with:
+        crate: tauri-cli
+        version: "1.4"
+        locked: false
+        args: --debug
+    - name: Build
+      run: |
+        cd ultimate_tex_tauri
+        npm install
+        cargo tauri build --bundles none
+    - name: Upload Zip
+      uses: actions/upload-artifact@v3
+      with:
+        name: ultimate_tex_v0.2.0_win_x64
+        path: target/release/ultimate_tex.exe
 
   build-macos:
     runs-on: macos-latest
