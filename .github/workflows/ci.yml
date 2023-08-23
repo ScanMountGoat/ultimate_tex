@@ -39,11 +39,18 @@ jobs:
       uses: actions/setup-node@v3
       with:
         node-version: 16
+    - name: Install Rust Toolchain
+      uses: actions-rs/toolchain@v1
+      with:
+        toolchain: stable
+        target: aarch64-apple-darwin
     - name: Install Tauri
       uses: baptiste0928/cargo-install@v2
       with:
         crate: tauri-cli
         version: "1.4"
+        locked: false
+        args: --debug
     - name: Install Packages
       run: |
         cd ultimate_tex_tauri
