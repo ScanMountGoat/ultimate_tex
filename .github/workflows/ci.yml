@@ -16,7 +16,10 @@ jobs:
       with:
         node-version: 16
     - name: Install Tauri
-      run: cargo install tauri-cli
+      uses: baptiste0928/cargo-install@v2
+      with:
+        crate: tauri-cli
+        version: "1.4"
     - name: Build
       run: |
         cd ultimate_tex_tauri
