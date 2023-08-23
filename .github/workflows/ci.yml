@@ -101,6 +101,7 @@ jobs:
       run: |
         cd ultimate_tex_tauri
         npm install
+        mkdir build
         cargo build --release
     - name: Create Zip
       run: |
