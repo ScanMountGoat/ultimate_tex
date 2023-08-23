@@ -70,9 +70,9 @@ jobs:
         codesign -s - target/aarch64-apple-darwin/release/bundle/macos/ultimate_tex.app
     - name: Create Zips
       run: |
-        cp target/x86_64-apple-darwin/release/bundle/macos/ultimate_tex.app ultimate_tex.app
+        cp -r target/x86_64-apple-darwin/release/bundle/macos/ultimate_tex.app ultimate_tex.app
         zip -r ultimate_tex_macos_intel.zip ultimate_tex.app
-        cp target/aarch64-apple-darwin/release/bundle/macos/ultimate_tex.app ultimate_tex.app
+        cp -r target/aarch64-apple-darwin/release/bundle/macos/ultimate_tex.app ultimate_tex.app
         zip -r ultimate_tex_macos_apple_silicon.zip ultimate_tex.app
     - name: Upload Zip Intel
       uses: actions/upload-artifact@v3
