@@ -1,8 +1,8 @@
 # ultimate_tex [![GitHub release (latest by date including pre-releases)](https://img.shields.io/github/v/release/ScanMountGoat/ultimate_tex?include_prereleases)](https://github.com/ScanMountGoat/ultimate_tex/releases/latest)
 Texture conversion utilities for Smash Ultimate. Report any bugs or request new features in [issues](https://github.com/ScanMountGoat/ultimate_tex/issues).
 
-## ultimate_tex_app
-![image](https://user-images.githubusercontent.com/23301691/227569380-849ef33c-06e0-4637-9178-a1efcfea5fff.png)
+## ultimate_tex_tauri
+![image](https://github.com/ScanMountGoat/ultimate_tex/assets/23301691/0c38e6de-6800-42c3-b250-efcf4d3cb490)
 
 A desktop application for batch converting texture files. Download the program in [releases](https://github.com/ScanMountGoat/ultimate_tex/releases).
 
