@@ -59,8 +59,8 @@
     "windows": [
       {
         "fullscreen": false,
-        "height": 600,
-        "width": 800,
+        "width": 1200,
+        "height": 800,
         "title": "Ultimate Tex 0.2.0",
         "resizable": true
       }
