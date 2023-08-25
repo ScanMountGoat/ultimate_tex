@@ -11,7 +11,7 @@
 
 	// Reduced options for global presets.
 	let presetFileTypes = ['Png', 'Dds', 'Nutexb', 'Bntx'];
-	let presetFormatTypes = ['Color (sRGB) + Alpha', 'Color (Linear) + Alpha'];
+	let presetFormatTypes = [['BC7Srgb', 'Color (sRGB) + Alpha'], ['BC7Unorm', 'Color (Linear) + Alpha']];
 	let presetMipmapTypes = ['Enabled', 'Disabled'];
 	let presetCompressionTypes = ['Fast', 'Normal', 'Slow'];
 
@@ -192,7 +192,7 @@
 	</fieldset>
 	<fieldset disabled={!isCompressedType(overrides.outputFileType)}>
 		<legend><strong>Output Format</strong></legend>
-		{#each presetFormatTypes as option}
+		{#each presetFormatTypes as [option, label]}
 			<label for="outputFormat{option}">
 				<input
 					type="radio"
@@ -201,7 +201,7 @@
 					name="outputFormat"
 					value={option}
 				/>
-				{option}
+				{label}
 			</label>
 		{/each}
 		<label for="outputFormatNull">
