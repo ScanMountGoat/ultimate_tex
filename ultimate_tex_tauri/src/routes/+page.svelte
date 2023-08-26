@@ -12,7 +12,7 @@
 	// Reduced options for global presets.
 	let presetFileTypes = ['Png', 'Dds', 'Nutexb', 'Bntx'];
 	let presetFormatTypes = [['BC7Srgb', 'Color (sRGB) + Alpha'], ['BC7Unorm', 'Color (Linear) + Alpha']];
-	let presetMipmapTypes = ['Enabled', 'Disabled'];
+	let presetMipmapTypes = [['GeneratedAutomatic', 'Enabled'], ['Disabled', 'Disabled']];
 	let presetCompressionTypes = ['Fast', 'Normal', 'Slow'];
 
 	// TODO: Better way to just have Rust initialize this?
@@ -217,7 +217,7 @@
 	</fieldset>
 	<fieldset disabled={!isCompressedType(overrides.outputFileType)}>
 		<legend><strong>Mipmaps</strong></legend>
-		{#each presetMipmapTypes as option}
+		{#each presetMipmapTypes as [option, label]}
 			<label for="mipmaps{option}">
 				<input
 					type="radio"
@@ -226,7 +226,7 @@
 					name="mipmaps"
 					value={option}
 				/>
-				{option}
+				{label}
 			</label>
 		{/each}
 		<label for="mipmapsNull">
