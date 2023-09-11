@@ -54,6 +54,7 @@
 	async function exportFiles(_) {
 		// Pass the AppSettings to Rust in case anything changed.
 		let settings = { outputFolder, saveInSameFolder, overrides, fileSettings };
+		console.log(fileSettings);
 		// Disable the export button until the export completes.
 		isExporting = true;
 		let count = await invoke('export_files', { settings });
@@ -285,7 +286,7 @@
 			{#each fileSettings as item, index}
 				<tr>
 					<th scope="row">{item.name}</th>
-					<th>{item.outputFormat}</th>
+					<th>{item.format}</th>
 					<th>{formatDimensions(item.dimensions)}</th>
 					<th>
 						<select bind:value={item.outputFileType} disabled={overrides.outputFileType != null}>
@@ -296,7 +297,7 @@
 					</th>
 					<th>
 						<select
-							bind:value={item.format}
+							bind:value={item.outputFormat}
 							disabled={overrides.outputFormat != null || !isCompressed(item)}
 						>
 							{#each formatTypes as option}
