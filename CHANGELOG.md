@@ -4,7 +4,7 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### unreleased
-### Fixed
+### 0.2.2 - 2023-09-11
 * Fixed an issue where the chosen output format would not be used when exporting.
 
 ### Changed
