@@ -52,16 +52,14 @@ impl App {
         self.settings.file_settings.clear();
     }
 
-    fn convert_and_export_files(&self) -> Result<usize, Box<dyn Error>> {
+    fn convert_and_export_files(&self) -> Result<Vec<String>, Box<dyn Error>> {
         // TODO: Log an error if creating the output directory fails.
         if let Some(output_folder) = &self.settings.output_folder {
             std::fs::create_dir_all(output_folder)?;
         }
 
-        let start = std::time::Instant::now();
-
         // TODO: report progress?
-        let count = self
+        let mut messages: Vec<_> = self
             .settings
             .file_settings
             .par_iter()
@@ -74,18 +72,26 @@ impl App {
                 };
 
                 output.and_then(|output| {
-                    convert_and_save_file(output, settings, file, &self.settings.overrides).ok()
+                    // Collect error messages to display to the user.
+                    match convert_and_save_file(output, settings, file, &self.settings.overrides) {
+                        Ok(_) => None,
+                        Err(e) => Some(format!("Error converting {}: {e}", settings.name)),
+                    }
                 })
             })
-            .count();
+            .collect();
 
-        println!(
-            "Converted {} files in {:?}",
-            self.files.len(),
-            start.elapsed()
+        // Always show basic results for the first message.
+        messages.insert(
+            0,
+            format!(
+                "Successfully converted {} of {} file(s)",
+                self.files.len() - messages.len(),
+                self.files.len(),
+            ),
         );
 
-        Ok(count)
+        Ok(messages)
     }
 }
 
@@ -196,11 +202,9 @@ fn load_files(state: tauri::State<AppState>) -> Vec<ImageFileSettings> {
 async fn export_files(
     settings: AppSettings,
     handle: tauri::AppHandle,
-) -> Result<usize, tauri::Error> {
-    // TODO: Return information to JS for displaying in a bottom bar?
+) -> Result<Vec<String>, tauri::Error> {
     tauri::async_runtime::spawn_blocking(move || {
         // TODO: Is it worth storing settings in Rust if we get it from JS anyway?
-        // TODO: Log errors.
         let state = handle.state::<AppState>();
         let app = &mut state.0.lock().unwrap();
         app.settings = settings;

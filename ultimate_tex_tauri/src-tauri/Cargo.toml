@@ -12,7 +12,7 @@ serde = { version = "=1.0.171", features = ["derive"] }
 tauri = { version = "1.4.1", features = ["dialog", "shell-open"] }
 ultimate_tex = { path = "../../ultimate_tex" }
 image = "0.24.5"
-image_dds = { git = "https://github.com/ScanMountGoat/image_dds", rev = "7e2cc26", features = ["ddsfile", "image", "serde"] }
+image_dds = { git = "https://github.com/ScanMountGoat/image_dds", rev = "b26fa33", features = ["ddsfile", "image", "serde"] }
 rayon = "1.7.0"
 open = "5.0.0"
 globwalk = "0.8.1"

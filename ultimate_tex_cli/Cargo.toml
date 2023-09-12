@@ -5,5 +5,5 @@ edition = "2021"
 
 [dependencies]
 ultimate_tex = { path = "../ultimate_tex" }
-image_dds = { git = "https://github.com/ScanMountGoat/image_dds", rev = "7e2cc26" }
+image_dds = { git = "https://github.com/ScanMountGoat/image_dds", rev = "b26fa33" }
 clap = { version = "4.1.1", features = ["derive"] }

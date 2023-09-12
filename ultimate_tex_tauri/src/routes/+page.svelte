@@ -31,7 +31,7 @@
 
 	let isExporting = false;
 
-	let footerText = '';
+	let footerMessages = [];
 
 	async function initializeApp() {
 		fileTypes = await invoke('image_file_type_variants', {});
@@ -57,8 +57,7 @@
 		console.log(fileSettings);
 		// Disable the export button until the export completes.
 		isExporting = true;
-		let count = await invoke('export_files', { settings });
-		footerText = `Successfully converted ${count} of ${fileSettings.length} file(s)`;
+		footerMessages = await invoke('export_files', { settings });
 		isExporting = false;
 	}
 
@@ -346,7 +345,10 @@
 
 <footer>
 	<hr />
-	{footerText}
+	{#each footerMessages as message}
+		{message}
+		<br>
+	{/each}
 </footer>
 
 <style>
