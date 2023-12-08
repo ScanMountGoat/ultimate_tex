@@ -1,11 +1,9 @@
 use std::{error::Error, path::Path};
 
 pub use bntx::BntxFile;
-pub use ddsfile::Dds;
-pub use image::RgbaImage;
 pub use nutexb::NutexbFile;
 
-use image_dds::{dds_image_format, ImageFormat, Surface};
+use image_dds::{dds_image_format, ddsfile::Dds, image::RgbaImage, ImageFormat, Surface};
 
 pub enum ImageFile {
     Image(RgbaImage),
@@ -31,7 +29,7 @@ impl ImageFile {
                 Ok(ImageFile::Dds(Dds::read(&mut reader)?))
             }
             // Assume the other formats are image formats.
-            _ => Ok(ImageFile::Image(image::open(input)?.to_rgba8())),
+            _ => Ok(ImageFile::Image(image_dds::image::open(input)?.to_rgba8())),
         }
     }
 
