@@ -5,7 +5,7 @@ pub use ddsfile::Dds;
 pub use image::RgbaImage;
 pub use nutexb::NutexbFile;
 
-use image_dds::{dds_image_format, ImageFormat};
+use image_dds::{dds_image_format, ImageFormat, Surface};
 
 pub enum ImageFile {
     Image(RgbaImage),
@@ -255,22 +255,23 @@ fn encode_dds(
     quality: image_dds::Quality,
     mipmaps: image_dds::Mipmaps,
 ) -> Result<Dds, Box<dyn Error>> {
-    let new_dds = if dds_image_format(dds) == Some(image_format) {
+    if dds_image_format(dds) == Some(image_format) {
         // Avoid lossy conversions if the format doesn't change.
         // TODO: Handle different mipmap counts.
         // Dds does not implement Clone, so we need to get creative.
         let mut writer = std::io::Cursor::new(Vec::new());
         dds.write(&mut writer)?;
         let mut reader = std::io::Cursor::new(writer.into_inner());
-        Dds::read(&mut reader)?
+        Dds::read(&mut reader).map_err(Into::into)
     } else {
         // Decode and encode to the desired format.
         // This also handles adjusting the number of mipmaps.
-        let surface = image_dds::decode_surface_rgba8_from_dds(dds)?;
-        image_dds::dds_from_surface_rgba8(surface, image_format, quality, mipmaps)?
-    };
-
-    Ok(new_dds)
+        Surface::from_dds(&dds)?
+            .decode_rgba8()?
+            .encode(image_format, quality, mipmaps)?
+            .to_dds()
+            .map_err(Into::into)
+    }
 }
 
 fn write_dds(output: &Path, dds: &Dds) -> Result<(), Box<dyn Error>> {

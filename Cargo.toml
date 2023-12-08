@@ -1,2 +1,3 @@
 [workspace]
 members = ["ultimate_tex", "ultimate_tex_cli", "ultimate_tex_tauri/src-tauri"]
+resolver = "2"
