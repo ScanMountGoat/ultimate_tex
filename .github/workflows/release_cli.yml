@@ -49,7 +49,7 @@ jobs:
     - name: Build
       run: cargo build -p ultimate_tex_cli --release --target ${{matrix.target}}
     - name: Sign Binary
-      run: codesign -s target/${{matrix.target}}/release/ultimate_tex_cli
+      run: codesign -s - target/${{matrix.target}}/release/ultimate_tex_cli
     - name: Create Release Zip
       run: zip ultimate_tex_cli_macos_${{matrix.desc}}.zip target/${{matrix.target}}/release/ultimate_tex_cli
     - name: Upload Zip
