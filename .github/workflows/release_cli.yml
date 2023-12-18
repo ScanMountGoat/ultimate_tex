@@ -51,7 +51,7 @@ jobs:
     - name: Sign Binary
       run: codesign -s - target/${{matrix.target}}/release/ultimate_tex_cli
     - name: Create Release Zip
-      run: zip ultimate_tex_cli_macos_${{matrix.desc}}.zip target/${{matrix.target}}/release/ultimate_tex_cli
+      run: zip -j ultimate_tex_cli_macos_${{matrix.desc}}.zip target/${{matrix.target}}/release/ultimate_tex_cli
     - name: Upload Zip
       uses: actions/upload-artifact@v3
       with:
@@ -72,7 +72,7 @@ jobs:
     - name: Build
       run: cargo build -p ultimate_tex_cli --release
     - name: Create Zip
-      run: zip ultimate_tex_cli_linux_x64.zip target/release/ultimate_tex_cli
+      run: zip -j ultimate_tex_cli_linux_x64.zip target/release/ultimate_tex_cli
     - name: Upload Zip
       uses: actions/upload-artifact@v3
       with:
