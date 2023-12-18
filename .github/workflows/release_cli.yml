@@ -56,12 +56,12 @@ jobs:
       uses: actions/upload-artifact@v3
       with:
         name: ultimate_tex_cli_macos_${{matrix.desc}}
-        path: target/${{matrix.target}}/release/ultimate_tex_cli_macos_${{matrix.desc}}.zip
+        path: ultimate_tex_cli_macos_${{matrix.desc}}.zip
     - name: Release
       uses: softprops/action-gh-release@v1
       if: startsWith(github.ref, 'refs/tags/')
       with:
-        files: target/${{matrix.target}}/release/ultimate_tex_cli_macos_${{matrix.desc}}.zip
+        files: ultimate_tex_cli_macos_${{matrix.desc}}.zip
       env:
         GITHUB_TOKEN: ${{secrets.GITHUB_TOKEN}}
       
