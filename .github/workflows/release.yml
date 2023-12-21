@@ -115,6 +115,8 @@ jobs:
       run: |
         sudo apt-get update
         sudo apt-get install -y libssl-dev libgtk-3-dev libsoup2.4-dev webkit2gtk-4.0 javascriptcoregtk-4.0
+        # https://github.com/Traverse-Research/intel-tex-rs-2/blob/main/.github/workflows/generate-binaries.yaml
+        sudo apt-get install gcc-11-multilib gcc-x86-64-linux-gnu g++-x86-64-linux-gnu
     - name: Install Tauri
       uses: baptiste0928/cargo-install@v2
       with:
