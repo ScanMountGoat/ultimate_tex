@@ -3,7 +3,7 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
-### unreleased
+### 0.2.3 - 2023-12-21
 ### Fixed
 * Fixed an issue where images with width and height not divisible by 4 failed to convert to compressed formats.
 

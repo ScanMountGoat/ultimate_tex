@@ -6,8 +6,7 @@
     "distDir": "../build"
   },
   "package": {
-    "productName": "ultimate_tex",
-    "version": "0.0.0"
+    "productName": "ultimate_tex"
   },
   "tauri": {
     "allowlist": {
@@ -61,7 +60,7 @@
         "fullscreen": false,
         "width": 1200,
         "height": 800,
-        "title": "Ultimate Tex 0.2.2",
+        "title": "Ultimate Tex 0.2.3",
         "resizable": true
       }
     ]
