@@ -253,7 +253,7 @@ fn encode_dds(
     quality: image_dds::Quality,
     mipmaps: image_dds::Mipmaps,
 ) -> Result<Dds, Box<dyn Error>> {
-    if dds_image_format(dds) == Some(image_format) {
+    if matches!(dds_image_format(dds), Ok(format) if format == image_format) {
         // Avoid lossy conversions if the format doesn't change.
         // TODO: Handle different mipmap counts.
         // Dds does not implement Clone, so we need to get creative.

@@ -6,5 +6,5 @@ edition = "2021"
 [dependencies]
 nutexb = { git = "https://github.com/jam1garner/nutexb", features = ["ddsfile"] }
 bntx = { git = "https://github.com/ScanMountGoat/bntx", rev = "73fe278" }
-image_dds = "0.3.0"
+image_dds = { git = "https://github.com/ScanMountGoat/image_dds", rev = "6debc74" }
 strum = { version = "0.24", features = ["derive"] }
