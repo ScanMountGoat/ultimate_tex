@@ -1,0 +1,111 @@
+:root:not([data-theme]) {
+    --font-size: 12px;
+    --spacing: 0.5rem;
+    --background-color: #1b1b1b;
+    --color: hsl(205, 0%, 77%);
+    --h1-color: hsl(205, 0%, 94%);
+    --h2-color: #e1e6eb;
+    --h3-color: hsl(205, 0%, 86%);
+    --h4-color: #c8d1d8;
+    --h5-color: hsl(205, 0%, 77%);
+    --h6-color: #afbbc4;
+    --muted-color: hsl(205, 0%, 50%);
+    --muted-border-color: #2d2d2d;
+    --primary: hsl(195, 85%, 41%);
+    --primary-hover: hsl(195, 80%, 50%);
+    --primary-focus: rgba(16, 149, 193, 0.25);
+    --primary-inverse: #fff;
+    --secondary: hsl(0, 0%, 35%);
+    --secondary-hover: hsl(205, 0%, 50%);
+    --secondary-focus: rgba(130, 130, 130, 0.25);
+    --secondary-inverse: #fff;
+    --contrast: hsl(205, 20%, 94%);
+    --contrast-hover: #fff;
+    --contrast-focus: rgba(130, 130, 130, 0.25);
+    --contrast-inverse: #000;
+    --mark-background-color: #d1c284;
+    --mark-color: #1b1b1b;
+    --ins-color: #388e3c;
+    --del-color: #c62828;
+    --form-element-background-color: #1b1b1b;
+    --form-element-border-color: #494949;
+    --form-element-disabled-background-color: hsl(205, 0%, 23%);
+    --form-element-disabled-border-color: hsl(205, 0%, 32%);
+    --form-element-invalid-border-color: #b71c1c;
+    --form-element-invalid-active-border-color: #c62828;
+    --form-element-invalid-focus-color: rgba(198, 40, 40, 0.25);
+    --form-element-valid-border-color: #2e7d32;
+    --form-element-valid-active-border-color: #388e3c;
+    --form-element-valid-focus-color: rgba(56, 142, 60, 0.25);
+    --switch-background-color: #565656;
+    --range-border-color: #24333e;
+    --range-active-border-color: hsl(205, 0%, 23%);
+    --table-row-stripped-background-color: rgba(140, 140, 140, 0.05);
+    --code-background-color: #18232c;
+    --code-tag-color: hsl(330, 30%, 50%);
+    --code-property-color: hsl(185, 30%, 50%);
+    --code-value-color: hsl(40, 10%, 50%);
+    --code-comment-color: #4d606d;
+    --card-background-color: #2e2e2e;
+    --card-sectionning-background-color: #2c2c2c;
+    --dropdown-background-color: hsl(205, 0%, 15%);
+    --dropdown-border-color: #3e3e3e;
+    --dropdown-hover-background-color: rgba(62, 62, 62, 0.75);
+    --modal-overlay-background-color: rgba(62, 62, 62, 0.8);
+    --progress-background-color: #3e3e3e;
+}
+
+body {
+    padding: 10px;
+}
+
+footer {
+    position: fixed;
+    bottom: 0;
+    width: 100%;
+    margin-bottom: 10px;
+}
+
+nav {
+    height: 15px;
+}
+
+.file-container {
+    display: flex;
+    justify-content: start;
+    align-content: center;
+    align-items: center;
+}
+
+.file-text {
+    color: var(--muted-color);
+    height: 100%;
+    text-align: center;
+    margin: 5px;
+}
+
+.flex-container {
+    display: grid;
+    grid-template-columns: 125px 175px 125px 150px;
+}
+
+a,
+[role='link'] {
+    --color: var(--color);
+}
+
+a:is([aria-current], :hover, :active, :focus),
+[role='link']:is([aria-current], :hover, :active, :focus) {
+    --color: var(--color);
+    --background-color: var(--secondary-focus);
+}
+
+a:focus,
+[role='link']:focus {
+    --color: var(--color);
+    --background-color: var(--secondary-focus);
+}
+
+details summary:focus:not([role='button']) {
+    color: var(--color);
+}

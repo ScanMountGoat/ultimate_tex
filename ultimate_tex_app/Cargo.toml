@@ -1,0 +1,18 @@
+[package]
+name = "ultimate_tex_app"
+version = "0.2.3"
+authors = ["ScanMountGoat <>"]
+edition = "2021"
+
+[dependencies]
+dioxus-desktop = "0.4"
+dioxus = "0.4"
+serde_json = "1.0"
+serde = { version = "1.0", features = ["derive"] }
+ultimate_tex = { path = "../ultimate_tex" }
+image_dds = { version = "0.4.0", features = ["ddsfile", "image", "serde"] }
+rayon = "1.7.0"
+open = "5.0.0"
+globwalk = "0.8.1"
+strum = { version = "0.24", features = ["derive"] }
+rfd = "0.11.4"
