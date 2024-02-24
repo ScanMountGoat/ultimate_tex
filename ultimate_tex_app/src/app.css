@@ -84,6 +84,10 @@ nav {
     margin: 5px;
 }
 
+.centered-text {
+    text-align: center;
+}
+
 .flex-container {
     display: grid;
     grid-template-columns: 125px 175px 125px 150px;

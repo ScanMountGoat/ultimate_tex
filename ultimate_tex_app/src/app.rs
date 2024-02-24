@@ -32,7 +32,7 @@ pub struct FileSettingsOverrides {
     pub output_file_type: Option<ImageFileType>,
     pub output_format: Option<ImageFormat>,
     pub mipmaps: Option<Mipmaps>,
-    pub compression_quality: Option<Quality>,
+    pub output_quality: Option<Quality>,
 }
 
 #[derive(Clone)]
@@ -135,7 +135,7 @@ impl Default for FileSettingsOverrides {
             output_file_type: Some(ImageFileType::Png),
             output_format: None,
             mipmaps: Some(Mipmaps::GeneratedAutomatic),
-            compression_quality: Some(Quality::Fast),
+            output_quality: Some(Quality::Fast),
         }
     }
 }
@@ -224,7 +224,7 @@ fn convert_and_save_file(
     // Global overrides take priority over file specific settings if enabled.
     let file_type = overrides.output_file_type.unwrap_or(file.output_file_type);
     let format = overrides.output_format.unwrap_or(file.output_format);
-    let quality = overrides.compression_quality.unwrap_or(file.output_quality);
+    let quality = overrides.output_quality.unwrap_or(file.output_quality);
     let mipmaps = overrides.mipmaps.unwrap_or(file.output_mipmaps);
 
     let output = output_folder
