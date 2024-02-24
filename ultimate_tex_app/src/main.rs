@@ -284,7 +284,7 @@ fn App(cx: Scope) -> Element {
                                 name: "outputFormat",
                                 value: "",
                                 oninput: move |_| {
-                                    app.with_mut(|a| a.settings.overrides.output_file_type = None);
+                                    app.with_mut(|a| a.settings.overrides.output_format = None);
                                 }
                             }
                             "Custom..."
