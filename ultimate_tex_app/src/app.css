@@ -77,6 +77,11 @@ nav {
     align-items: center;
 }
 
+img {
+    width: 32px;
+    height: 32px;
+}
+
 .file-text {
     color: var(--muted-color);
     height: 100%;

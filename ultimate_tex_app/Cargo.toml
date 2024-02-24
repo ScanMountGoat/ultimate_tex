@@ -16,3 +16,4 @@ open = "5.0.0"
 globwalk = "0.8.1"
 strum = { version = "0.24", features = ["derive"] }
 rfd = "0.11.4"
+base64 = "0.21.7"

@@ -361,6 +361,7 @@ fn App(cx: Scope) -> Element {
                 role: "grid",
                 thead {
                     tr {
+                        th { scope: "col", strong { "Image" } }
                         th { scope: "col", strong { "Name" } }
                         th { scope: "col", strong { "Format" } }
                         th { scope: "col", strong { "Size" } }
@@ -375,7 +376,10 @@ fn App(cx: Scope) -> Element {
                     for (i, item) in app.read().settings.file_settings.iter().enumerate() {
                         tr {
                             key: "{item.name}",
-                            th { scope: "row", "{item.name}" }
+                            th {
+                                img { src: "{app.read().png_thumbnails[i]}" }
+                            }
+                            th { "{item.name}" }
                             th { "{item.format}" }
                             th { "{item.dimensions.0}x{item.dimensions.1}x{item.dimensions.2}" }
                             th {

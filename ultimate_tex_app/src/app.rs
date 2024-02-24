@@ -3,12 +3,11 @@ use std::{
     path::{Path, PathBuf},
 };
 
-use image_dds::{ImageFormat, Mipmaps, Quality};
+use base64::prelude::*;
+use image_dds::{image::codecs::png::PngEncoder, ImageFormat, Mipmaps, Quality};
 use rayon::prelude::*;
 use rfd::FileDialog;
-use ultimate_tex::{
-    convert_to_bntx, convert_to_dds, convert_to_image, convert_to_nutexb, ImageFile, NutexbFile,
-};
+use ultimate_tex::{ImageFile, NutexbFile};
 
 // TODO: Add proper logging using events?
 #[derive(Default)]
@@ -17,6 +16,7 @@ pub struct App {
     // Image data should only ever be accessible from Rust.
     pub settings: AppSettings,
     pub files: Vec<ImageFile>,
+    pub png_thumbnails: Vec<String>,
 }
 
 #[derive(Clone, Default)]
@@ -64,12 +64,14 @@ impl App {
                 .par_iter()
                 .map(|file| ImageFile::read(file).unwrap())
                 .collect();
+            let new_thumbnails: Vec<_> = new_files.par_iter().map(encode_png_base64).collect();
             for (file, image) in files.iter().zip(new_files.iter()) {
                 self.settings
                     .file_settings
                     .push(ImageFileSettings::from_image(file.clone(), image));
             }
             self.files.extend(new_files);
+            self.png_thumbnails.extend(new_thumbnails);
 
             println!("Added {} files in {:?}", files.len(), start.elapsed());
         }
@@ -78,11 +80,13 @@ impl App {
     pub fn remove_file(&mut self, index: usize) {
         self.files.remove(index);
         self.settings.file_settings.remove(index);
+        self.png_thumbnails.remove(index);
     }
 
     pub fn clear_files(&mut self) {
         self.files.clear();
         self.settings.file_settings.clear();
+        self.png_thumbnails.clear();
     }
 
     pub fn convert_and_export_files(&self) -> Result<Vec<String>, Box<dyn Error>> {
@@ -126,6 +130,19 @@ impl App {
 
         Ok(messages)
     }
+}
+
+fn encode_png_base64(f: &ImageFile) -> String {
+    // Convert to an html compatible format.
+    let mut image = f.to_image().unwrap();
+    // Disable alpha for better display of PRM and NOR.
+    image.pixels_mut().for_each(|p| p[3] = 255u8);
+
+    let mut png_bytes = Vec::new();
+    let encoder = PngEncoder::new(&mut png_bytes);
+    image.write_with_encoder(encoder).unwrap();
+
+    "data:image/png;base64,".to_string() + &BASE64_STANDARD.encode(png_bytes)
 }
 
 impl Default for FileSettingsOverrides {
@@ -232,11 +249,11 @@ fn convert_and_save_file(
         .with_extension(file_type.extension());
 
     match file_type {
-        ImageFileType::Dds => convert_to_dds(image_file, &output, format, quality, mipmaps)?,
-        ImageFileType::Png => convert_to_image(image_file, &output)?,
-        ImageFileType::Tiff => convert_to_image(image_file, &output)?,
-        ImageFileType::Nutexb => convert_to_nutexb(image_file, &output, format, quality, mipmaps)?,
-        ImageFileType::Bntx => convert_to_bntx(image_file, &output, format, quality, mipmaps)?,
+        ImageFileType::Dds => image_file.save_dds(&output, format, quality, mipmaps)?,
+        ImageFileType::Png => image_file.save_image(&output)?,
+        ImageFileType::Tiff => image_file.save_image(&output)?,
+        ImageFileType::Nutexb => image_file.save_nutexb(&output, format, quality, mipmaps)?,
+        ImageFileType::Bntx => image_file.save_bntx(&output, format, quality, mipmaps)?,
     }
     Ok(())
 }

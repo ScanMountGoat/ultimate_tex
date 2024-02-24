@@ -55,6 +55,144 @@ impl ImageFile {
             ImageFile::Bntx(bntx) => (bntx.width(), bntx.height(), bntx.depth()),
         }
     }
+
+    pub fn to_image(&self) -> Result<RgbaImage, Box<dyn Error>> {
+        // TODO: EXR support for BC6H?
+        match self {
+            ImageFile::Image(image) => Ok(image.clone()),
+            ImageFile::Dds(dds) => image_dds::image_from_dds(dds, 0).map_err(Into::into),
+            ImageFile::Nutexb(nutexb) => {
+                // Use DDS as an intermediate format to handle swizzling.
+                let dds = nutexb.to_dds()?;
+                image_dds::image_from_dds(&dds, 0).map_err(Into::into)
+            }
+            ImageFile::Bntx(bntx) => {
+                // Use DDS as an intermediate format to handle swizzling.
+                let dds = bntx::dds::create_dds(bntx)?;
+                image_dds::image_from_dds(&dds, 0).map_err(Into::into)
+            }
+        }
+    }
+
+    pub fn save_image(&self, output: &Path) -> Result<(), Box<dyn Error>> {
+        self.to_image()?.save(output).map_err(Into::into)
+    }
+
+    pub fn save_nutexb(
+        &self,
+        output: &Path,
+        image_format: image_dds::ImageFormat,
+        quality: image_dds::Quality,
+        mipmaps: image_dds::Mipmaps,
+    ) -> Result<(), Box<dyn Error>> {
+        // Nutexb files use the file name as the internal name.
+        let name = output
+            .with_extension("")
+            .file_name()
+            .unwrap_or_default()
+            .to_string_lossy()
+            .to_string();
+
+        // Use image_dds to encode to a new format if necessary.
+        match self {
+            ImageFile::Image(image) => {
+                let dds = image_dds::dds_from_image(image, image_format, quality, mipmaps)?;
+                let nutexb = NutexbFile::from_dds(&dds, name)?;
+                nutexb.write_to_file(output)?;
+            }
+            ImageFile::Dds(dds) => {
+                let new_dds = encode_dds(dds, image_format, quality, mipmaps)?;
+                let nutexb = NutexbFile::from_dds(&new_dds, name)?;
+                nutexb.write_to_file(output)?;
+            }
+            ImageFile::Nutexb(nutexb) => {
+                let dds = nutexb.to_dds()?;
+                let new_dds = encode_dds(&dds, image_format, quality, mipmaps)?;
+                let new_nutexb = NutexbFile::from_dds(&new_dds, nutexb.footer.string.to_string())?;
+                new_nutexb.write_to_file(output)?;
+            }
+            ImageFile::Bntx(bntx) => {
+                let dds = bntx::dds::create_dds(bntx)?;
+                let new_dds = encode_dds(&dds, image_format, quality, mipmaps)?;
+                let nutexb = NutexbFile::from_dds(&new_dds, name)?;
+                nutexb.write_to_file(output)?;
+            }
+        }
+        Ok(())
+    }
+
+    pub fn save_bntx(
+        &self,
+        output: &Path,
+        image_format: image_dds::ImageFormat,
+        quality: image_dds::Quality,
+        mipmaps: image_dds::Mipmaps,
+    ) -> Result<(), Box<dyn Error>> {
+        // Nutexb files use the file name as the internal name.
+        let name = output
+            .with_extension("")
+            .file_name()
+            .unwrap_or_default()
+            .to_string_lossy()
+            .to_string();
+
+        match self {
+            ImageFile::Image(image) => {
+                let dds = image_dds::dds_from_image(image, image_format, quality, mipmaps)?;
+                let bntx = bntx::dds::create_bntx(&name, &dds)?;
+                bntx.write_to_file(output)?;
+            }
+            ImageFile::Dds(dds) => {
+                let new_dds = encode_dds(dds, image_format, quality, mipmaps)?;
+                let bntx = bntx::dds::create_bntx(&name, &new_dds)?;
+                bntx.write_to_file(output)?;
+            }
+            ImageFile::Nutexb(nutexb) => {
+                let dds = nutexb.to_dds()?;
+                let new_dds = encode_dds(&dds, image_format, quality, mipmaps)?;
+                let bntx = bntx::dds::create_bntx(&name, &new_dds)?;
+                bntx.write_to_file(output)?;
+            }
+            ImageFile::Bntx(bntx) => {
+                let dds = bntx::dds::create_dds(bntx)?;
+                let new_dds = encode_dds(&dds, image_format, quality, mipmaps)?;
+                let new_bntx = bntx::dds::create_bntx(&name, &new_dds)?;
+                new_bntx.write_to_file(output)?;
+            }
+        }
+        Ok(())
+    }
+
+    pub fn save_dds(
+        &self,
+        output: &Path,
+        image_format: image_dds::ImageFormat,
+        quality: image_dds::Quality,
+        mipmaps: image_dds::Mipmaps,
+    ) -> Result<(), Box<dyn Error>> {
+        match self {
+            ImageFile::Image(image) => {
+                let dds = image_dds::dds_from_image(image, image_format, quality, mipmaps)?;
+                write_dds(output, &dds)?;
+            }
+            ImageFile::Dds(dds) => {
+                let new_dds = encode_dds(dds, image_format, quality, mipmaps)?;
+                write_dds(output, &new_dds)?;
+            }
+            ImageFile::Nutexb(nutexb) => {
+                let dds = nutexb.to_dds()?;
+                let new_dds = encode_dds(&dds, image_format, quality, mipmaps)?;
+                write_dds(output, &new_dds)?;
+            }
+            ImageFile::Bntx(bntx) => {
+                let dds = bntx::dds::create_dds(bntx)?;
+                let new_dds = encode_dds(&dds, image_format, quality, mipmaps)?;
+                write_dds(output, &new_dds)?;
+            }
+        };
+
+        Ok(())
+    }
 }
 
 fn bntx_image_format(bntx: &BntxFile) -> ImageFormat {
@@ -104,147 +242,6 @@ fn nutexb_image_format(nutexb: &NutexbFile) -> ImageFormat {
         nutexb::NutexbFormat::BC7Unorm => ImageFormat::BC7Unorm,
         nutexb::NutexbFormat::BC7Srgb => ImageFormat::BC7Srgb,
     }
-}
-
-pub fn convert_to_image(input_image: &ImageFile, output: &Path) -> Result<(), Box<dyn Error>> {
-    // TODO: EXR support for BC6H?
-
-    match input_image {
-        ImageFile::Image(image) => image.save(output)?,
-        ImageFile::Dds(dds) => {
-            let image = image_dds::image_from_dds(dds, 0)?;
-            image.save(output)?;
-        }
-        ImageFile::Nutexb(nutexb) => {
-            // Use DDS as an intermediate format to handle swizzling.
-            let dds = nutexb.to_dds()?;
-            let image = image_dds::image_from_dds(&dds, 0)?;
-            image.save(output)?;
-        }
-        ImageFile::Bntx(bntx) => {
-            // Use DDS as an intermediate format to handle swizzling.
-            let dds = bntx::dds::create_dds(bntx)?;
-            let image = image_dds::image_from_dds(&dds, 0)?;
-            image.save(output)?;
-        }
-    }
-    Ok(())
-}
-
-pub fn convert_to_nutexb(
-    input_image: &ImageFile,
-    output: &Path,
-    image_format: image_dds::ImageFormat,
-    quality: image_dds::Quality,
-    mipmaps: image_dds::Mipmaps,
-) -> Result<(), Box<dyn Error>> {
-    // Nutexb files use the file name as the internal name.
-    let name = output
-        .with_extension("")
-        .file_name()
-        .unwrap_or_default()
-        .to_string_lossy()
-        .to_string();
-
-    // Use image_dds to encode to a new format if necessary.
-    match input_image {
-        ImageFile::Image(image) => {
-            let dds = image_dds::dds_from_image(image, image_format, quality, mipmaps)?;
-            let nutexb = NutexbFile::from_dds(&dds, name)?;
-            nutexb.write_to_file(output)?;
-        }
-        ImageFile::Dds(dds) => {
-            let new_dds = encode_dds(dds, image_format, quality, mipmaps)?;
-            let nutexb = NutexbFile::from_dds(&new_dds, name)?;
-            nutexb.write_to_file(output)?;
-        }
-        ImageFile::Nutexb(nutexb) => {
-            let dds = nutexb.to_dds()?;
-            let new_dds = encode_dds(&dds, image_format, quality, mipmaps)?;
-            let new_nutexb = NutexbFile::from_dds(&new_dds, nutexb.footer.string.to_string())?;
-            new_nutexb.write_to_file(output)?;
-        }
-        ImageFile::Bntx(bntx) => {
-            let dds = bntx::dds::create_dds(bntx)?;
-            let new_dds = encode_dds(&dds, image_format, quality, mipmaps)?;
-            let nutexb = NutexbFile::from_dds(&new_dds, name)?;
-            nutexb.write_to_file(output)?;
-        }
-    }
-    Ok(())
-}
-
-pub fn convert_to_bntx(
-    input_image: &ImageFile,
-    output: &Path,
-    image_format: image_dds::ImageFormat,
-    quality: image_dds::Quality,
-    mipmaps: image_dds::Mipmaps,
-) -> Result<(), Box<dyn Error>> {
-    // Nutexb files use the file name as the internal name.
-    let name = output
-        .with_extension("")
-        .file_name()
-        .unwrap_or_default()
-        .to_string_lossy()
-        .to_string();
-
-    match input_image {
-        ImageFile::Image(image) => {
-            let dds = image_dds::dds_from_image(image, image_format, quality, mipmaps)?;
-            let bntx = bntx::dds::create_bntx(&name, &dds)?;
-            bntx.write_to_file(output)?;
-        }
-        ImageFile::Dds(dds) => {
-            let new_dds = encode_dds(dds, image_format, quality, mipmaps)?;
-            let bntx = bntx::dds::create_bntx(&name, &new_dds)?;
-            bntx.write_to_file(output)?;
-        }
-        ImageFile::Nutexb(nutexb) => {
-            let dds = nutexb.to_dds()?;
-            let new_dds = encode_dds(&dds, image_format, quality, mipmaps)?;
-            let bntx = bntx::dds::create_bntx(&name, &new_dds)?;
-            bntx.write_to_file(output)?;
-        }
-        ImageFile::Bntx(bntx) => {
-            let dds = bntx::dds::create_dds(bntx)?;
-            let new_dds = encode_dds(&dds, image_format, quality, mipmaps)?;
-            let new_bntx = bntx::dds::create_bntx(&name, &new_dds)?;
-            new_bntx.write_to_file(output)?;
-        }
-    }
-    Ok(())
-}
-
-pub fn convert_to_dds(
-    input_image: &ImageFile,
-    output: &Path,
-    image_format: image_dds::ImageFormat,
-    quality: image_dds::Quality,
-    mipmaps: image_dds::Mipmaps,
-) -> Result<(), Box<dyn Error>> {
-    match input_image {
-        ImageFile::Image(image) => {
-            let dds = image_dds::dds_from_image(image, image_format, quality, mipmaps)?;
-            write_dds(output, &dds)?;
-        }
-        ImageFile::Dds(dds) => {
-            let new_dds = encode_dds(dds, image_format, quality, mipmaps)?;
-            write_dds(output, &new_dds)?;
-        }
-        ImageFile::Nutexb(nutexb) => {
-            let dds = nutexb.to_dds()?;
-            let new_dds = encode_dds(&dds, image_format, quality, mipmaps)?;
-            write_dds(output, &new_dds)?;
-        }
-        ImageFile::Bntx(bntx) => {
-            let dds = bntx::dds::create_dds(bntx)?;
-            let new_dds = encode_dds(&dds, image_format, quality, mipmaps)?;
-            write_dds(output, &new_dds)?;
-        }
-    };
-
-    Ok(())
 }
 
 fn encode_dds(

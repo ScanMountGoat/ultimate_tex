@@ -56,16 +56,16 @@ fn main() {
         .to_lowercase()
         .as_str()
     {
-        "nutexb" => {
-            ultimate_tex::convert_to_nutexb(&input_image, output, format, quality, mipmaps).unwrap()
-        }
-        "bntx" => {
-            ultimate_tex::convert_to_bntx(&input_image, output, format, quality, mipmaps).unwrap()
-        }
-        "dds" => {
-            ultimate_tex::convert_to_dds(&input_image, output, format, quality, mipmaps).unwrap()
-        }
+        "nutexb" => input_image
+            .save_nutexb(output, format, quality, mipmaps)
+            .unwrap(),
+        "bntx" => input_image
+            .save_bntx(output, format, quality, mipmaps)
+            .unwrap(),
+        "dds" => input_image
+            .save_dds(output, format, quality, mipmaps)
+            .unwrap(),
         // Assume the other formats are image formats.
-        _ => ultimate_tex::convert_to_image(&input_image, output).unwrap(),
+        _ => input_image.save_image(output).unwrap(),
     }
 }
