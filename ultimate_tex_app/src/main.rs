@@ -12,11 +12,9 @@ mod app;
 use app::{optimize_nutexb_files, App, ImageFileType};
 
 fn main() {
-    let head = r#"<link rel="stylesheet" href="src/pico.min.css"><link rel="stylesheet" href="src/app.css">"#;
     dioxus_desktop::launch_cfg(
         App,
         dioxus_desktop::Config::new()
-            .with_custom_head(head.to_string())
             .with_window(
                 WindowBuilder::new()
                     .with_title(concat!("Ultimate Tex ", env!("CARGO_PKG_VERSION"))),
@@ -53,6 +51,8 @@ fn App(cx: Scope) -> Element {
         .unwrap_or_default();
 
     cx.render(rsx! {
+        style { {include_str!("./pico.min.css")} }
+        style { {include_str!("./app.css")} }
         // TODO: menus don't close on click
         nav {
             ul {
