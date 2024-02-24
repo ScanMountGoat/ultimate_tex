@@ -26,8 +26,11 @@ fn main() {
 #[component]
 fn App(cx: Scope) -> Element {
     // TODO: Is there a better way of managing this state?
-    let app = use_ref(cx, || App::default());
-    let messages = use_ref(cx, || Vec::new());
+    let app = use_ref(cx, App::default);
+    let messages = use_ref(cx, Vec::new);
+    let is_file_open = use_state(cx, || false);
+    let is_batch_open = use_state(cx, || false);
+    let is_help_open = use_state(cx, || false);
 
     // TODO: Clean up into more components?
     // Reduced options for global presets.
@@ -60,9 +63,13 @@ fn App(cx: Scope) -> Element {
                     details {
                         role: "list",
                         dir: "ltr",
+                        open: "{is_file_open}",
                         summary {
                             aria_haspopup: "listbox",
                             role: "link",
+                            onclick: move |_| {
+                                is_file_open.set(true);
+                            },
                             "File"
                         }
                         ul {
@@ -71,6 +78,7 @@ fn App(cx: Scope) -> Element {
                                 a {
                                     onclick: move |_| {
                                         app.with_mut(|a| a.add_files());
+                                        is_file_open.set(false);
                                     },
                                     "Add Files..."
                                 }
@@ -79,6 +87,7 @@ fn App(cx: Scope) -> Element {
                                 a {
                                     onclick: move |_| {
                                         app.with_mut(|a| a.clear_files());
+                                        is_file_open.set(false);
                                     },
                                     "Clear Files..."
                                 }
@@ -90,16 +99,23 @@ fn App(cx: Scope) -> Element {
                     details {
                         role: "list",
                         dir: "ltr",
+                        open: "{is_batch_open}",
                         summary {
                             aria_haspopup: "listbox",
                             role: "link",
+                            onclick: move |_| {
+                                is_batch_open.set(true);
+                            },
                             "Batch"
                         }
                         ul {
                             role: "listbox",
                             li {
                                 a {
-                                    onclick: move |_| { optimize_nutexb_files() },
+                                    onclick: move |_| {
+                                        optimize_nutexb_files();
+                                        is_batch_open.set(false);
+                                    },
                                     "Optimize Nutexb Padding..."
                                 }
                             }
@@ -110,9 +126,13 @@ fn App(cx: Scope) -> Element {
                     details {
                         role: "list",
                         dir: "ltr",
+                        open: "{is_help_open}",
                         summary {
                             aria_haspopup: "listbox",
                             role: "link",
+                            onclick: move |_| {
+                                is_help_open.set(true);
+                            },
                             "Help"
                         }
                         ul {
@@ -120,6 +140,7 @@ fn App(cx: Scope) -> Element {
                             li {
                                 a {
                                     onclick: move |_| {
+                                        is_help_open.set(false);
                                         if let Err(_) = open::that("https://github.com/ScanMountGoat/ultimate_tex/wiki") {
                                             // TODO: log errors
                                         }
@@ -141,7 +162,6 @@ fn App(cx: Scope) -> Element {
                 onchange: move |e| {
                     app.with_mut(|a| a.settings.save_in_same_folder = e.value.parse().unwrap());
                 }
-
             }
             "Save to original folder"
         }

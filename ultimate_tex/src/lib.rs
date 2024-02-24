@@ -264,7 +264,7 @@ fn encode_dds(
     } else {
         // Decode and encode to the desired format.
         // This also handles adjusting the number of mipmaps.
-        Surface::from_dds(&dds)?
+        Surface::from_dds(dds)?
             .decode_rgba8()?
             .encode(image_format, quality, mipmaps)?
             .to_dds()
