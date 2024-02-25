@@ -1,7 +1,7 @@
 # ultimate_tex [![GitHub release (latest by date including pre-releases)](https://img.shields.io/github/v/release/ScanMountGoat/ultimate_tex?include_prereleases)](https://github.com/ScanMountGoat/ultimate_tex/releases/latest)
 Texture conversion utilities for Smash Ultimate. Report any bugs or request new features in [issues](https://github.com/ScanMountGoat/ultimate_tex/issues).
 
-## ultimate_tex_tauri
+## ultimate_tex_app
 ![image](https://github.com/ScanMountGoat/ultimate_tex/assets/23301691/0c38e6de-6800-42c3-b250-efcf4d3cb490)
 
 A desktop application for batch converting texture files. Download the program in [releases](https://github.com/ScanMountGoat/ultimate_tex/releases).
@@ -13,25 +13,22 @@ A commandline program for converting a single texture file.
 
 ### Examples
 DDS:  
-`cargo run -p ultimate_tex_cli --release -- cat.jpeg cat.dds --format BC1Srgb`  
-`cargo run -p ultimate_tex_cli --release -- cat.dds cat.tiff`  
+`ultimate_tex_cli cat.jpeg cat.dds --format BC1Srgb`  
+`ultimate_tex_cli cat.dds cat.tiff`  
 
 Nutexb:  
-`cargo run -p ultimate_tex_cli --release -- def_mario_001_col.nutexb img.dds`  
-`cargo run -p ultimate_tex_cli --release -- img.dds def_mario_001_col.nutexb --format BC7Srgb`  
+`ultimate_tex_cli def_mario_001_col.nutexb img.dds`  
+`ultimate_tex_cli img.dds def_mario_001_col.nutexb --format BC7Srgb`  
 
 Bntx:  
-`cargo run -p ultimate_tex_cli --release -- chara_0_captain_01.bntx img.png`  
-`cargo run -p ultimate_tex_cli --release -- img.png chara_0_captain_01.bntx --format BC7Unorm --no-mipmaps`  
+`ultimate_tex_cli chara_0_captain_01.bntx img.png`  
+`ultimate_tex_cli img.png chara_0_captain_01.bntx --format BC7Unorm --no-mipmaps`  
 
 ## ultimate_tex
 A library for conversion functionality shared between the GUI and CLI programs.
 
 ## Building
-With a newer version of the Rust toolchain installed, run `cargo build --release`. 
-Don't forget the `--release` since debug builds in Rust will run slowly. The image_dds crate compiles C/C++ code for the encoders and decoders and requires C/C++ tooling installed. image_dds uses precompiled kernels for some image encoding operations, so not all platforms and architectures are supported.
-
-The ultimate_tex_tauri application requires additional tools to build and run. See the [getting started guide](https://tauri.app/v1/guides/getting-started/prerequisites) for details. The guide also covers installing necessary packages on Linux. The frontend uses Javascript and requires installing a newer version of [npm](https://docs.npmjs.com/downloading-and-installing-node-js-and-npm). Run `npm install` once from the `ultimate_tex_tauri` directory to install the necessary Javascript packages. The easiest way to run the app locally is to install the tauri CLI tools with `cargo install tauri-cli` and then run `cargo tauri dev` also from the `ultimate_tex_tauri` directory.
+With a newer version of the Rust toolchain installed, run `cargo build --release`. Don't forget the `--release` since debug builds in Rust will run slowly. The image_dds crate compiles C/C++ code for the encoders and decoders and requires C/C++ tooling installed. image_dds uses precompiled kernels for some image encoding operations, so not all platforms and architectures are supported. Build and run the application with `cargo run --release -p ultimate_tex_app`. See the GitHub Actions scripts for installing the necessary Linux packages.
 
 ## Credits
 - [nutexb](https://github.com/jam1garner/nutexb)
