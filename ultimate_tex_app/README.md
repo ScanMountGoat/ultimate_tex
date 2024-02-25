@@ -1,5 +1,5 @@
 # ultimate_tex_app
-A desktop application build with [Dioxus](https://dioxuslabs.com/). 
+A desktop application built with [Dioxus](https://dioxuslabs.com/). 
 
 ## Development
 Install [dioxus-cli](https://crates.io/crates/dioxus-cli).
