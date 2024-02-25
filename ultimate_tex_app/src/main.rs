@@ -78,10 +78,7 @@ fn App(cx: Scope) -> Element {
         nav {
             ul {
                 li {
-                    details {
-                        role: "list",
-                        dir: "ltr",
-                        open: "{is_file_open}",
+                    details { role: "list", dir: "ltr", open: "{is_file_open}",
                         summary {
                             aria_haspopup: "listbox",
                             role: "link",
@@ -90,11 +87,9 @@ fn App(cx: Scope) -> Element {
                             },
                             "File"
                         }
-                        ul {
-                            role: "listbox",
+                        ul { role: "listbox",
                             li {
-                                a {
-                                    onclick: move |_| {
+                                a { onclick: move |_| {
                                         app.with_mut(|a| a.add_files());
                                         is_file_open.set(false);
                                     },
@@ -102,8 +97,7 @@ fn App(cx: Scope) -> Element {
                                 }
                             }
                             li {
-                                a {
-                                    onclick: move |_| {
+                                a { onclick: move |_| {
                                         app.with_mut(|a| a.clear_files());
                                         is_file_open.set(false);
                                     },
@@ -114,10 +108,7 @@ fn App(cx: Scope) -> Element {
                     }
                 }
                 li {
-                    details {
-                        role: "list",
-                        dir: "ltr",
-                        open: "{is_batch_open}",
+                    details { role: "list", dir: "ltr", open: "{is_batch_open}",
                         summary {
                             aria_haspopup: "listbox",
                             role: "link",
@@ -126,11 +117,9 @@ fn App(cx: Scope) -> Element {
                             },
                             "Batch"
                         }
-                        ul {
-                            role: "listbox",
+                        ul { role: "listbox",
                             li {
-                                a {
-                                    onclick: move |_| {
+                                a { onclick: move |_| {
                                         optimize_nutexb_files();
                                         is_batch_open.set(false);
                                     },
@@ -141,10 +130,7 @@ fn App(cx: Scope) -> Element {
                     }
                 }
                 li {
-                    details {
-                        role: "list",
-                        dir: "ltr",
-                        open: "{is_help_open}",
+                    details { role: "list", dir: "ltr", open: "{is_help_open}",
                         summary {
                             aria_haspopup: "listbox",
                             role: "link",
@@ -153,15 +139,11 @@ fn App(cx: Scope) -> Element {
                             },
                             "Help"
                         }
-                        ul {
-                            role: "listbox",
+                        ul { role: "listbox",
                             li {
-                                a {
-                                    onclick: move |_| {
+                                a { onclick: move |_| {
                                         is_help_open.set(false);
-                                        if let Err(_) = open::that("https://github.com/ScanMountGoat/ultimate_tex/wiki") {
-                                            // TODO: log errors
-                                        }
+                                        if let Err(_) = open::that("https://github.com/ScanMountGoat/ultimate_tex/wiki") {}
                                     },
                                     "Wiki"
                                 }
@@ -213,7 +195,6 @@ fn App(cx: Scope) -> Element {
             style: "width: 150px;",
             disabled: disable_export,
             onclick: move |_| {
-                // TODO: make this async.
                 is_exporting.set(true);
                 *messages.write() = app.with(|a| a.convert_and_export_files().unwrap());
                 is_exporting.set(false);
@@ -223,27 +204,26 @@ fn App(cx: Scope) -> Element {
         hr {}
 
         // TODO: select appropriate option by default.
-        div {
-            class: "flex-container",
+        div { class: "flex-container",
             fieldset {
                 legend { strong { "Output Type" } }
                 for option in preset_file_types {
-                    label {
-                        r#for: "outputType{option}",
+                    label { r#for: "outputType{option}",
                         input {
                             r#type: "radio",
                             id: "outputType{option}",
                             name: "outputType",
                             value: "{option}",
                             oninput: move |e| {
-                                app.with_mut(|a| a.settings.overrides.output_file_type = Some(e.value.parse().unwrap()));
+                                app.with_mut(|a| {
+                                    a.settings.overrides.output_file_type = Some(e.value.parse().unwrap());
+                                });
                             }
                         }
                         "{option}"
                     }
                 }
-                label {
-                    r#for: "outputTypeNull",
+                label { r#for: "outputTypeNull",
                     input {
                         r#type: "radio",
                         id: "outputTypeNull",
@@ -357,8 +337,7 @@ fn App(cx: Scope) -> Element {
         }
 
         figure {
-            table {
-                role: "grid",
+            table { role: "grid",
                 thead {
                     tr {
                         th { scope: "col", strong { "Image" } }
@@ -373,12 +352,9 @@ fn App(cx: Scope) -> Element {
                     }
                 }
                 tbody {
-                    for (i, item) in app.read().settings.file_settings.iter().enumerate() {
-                        tr {
-                            key: "{item.name}",
-                            th {
-                                img { src: "{app.read().png_thumbnails[i]}" }
-                            }
+                    for (i , item) in app.read().settings.file_settings.iter().enumerate() {
+                        tr { key: "{item.name}",
+                            th { img { src: "{app.read().png_thumbnails[i]}" } }
                             th { "{item.name}" }
                             th { "{item.format}" }
                             th { "{item.dimensions.0}x{item.dimensions.1}x{item.dimensions.2}" }
@@ -445,13 +421,14 @@ fn App(cx: Scope) -> Element {
                             th {
                                 button {
                                     class: "secondary",
-                                    onclick: move |_| { app.with_mut(|a| a.remove_file(i)); },
+                                    onclick: move |_| {
+                                        app.with_mut(|a| a.remove_file(i));
+                                    },
                                     "Remove"
                                 }
                             }
                         }
                     }
-
                 }
             }
         }
