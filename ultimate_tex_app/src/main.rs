@@ -3,7 +3,7 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
 use dioxus::prelude::*;
-use dioxus_desktop::WindowBuilder;
+use dioxus_desktop::{tao::window::Icon, WindowBuilder};
 use image_dds::{ImageFormat, Mipmaps, Quality};
 use rfd::FileDialog;
 use strum::IntoEnumIterator;
@@ -12,22 +12,27 @@ mod app;
 use app::{optimize_nutexb_files, App, ImageFileType};
 
 fn main() {
+    let image = image_dds::image::load_from_memory(include_bytes!("../icons/32x32.png")).unwrap();
+    let icon = Icon::from_rgba(image.into_rgba8().into_raw(), 32, 32).unwrap();
+
     dioxus_desktop::launch_cfg(
         App,
         dioxus_desktop::Config::new()
             .with_window(
                 WindowBuilder::new()
-                    .with_title(concat!("Ultimate Tex ", env!("CARGO_PKG_VERSION"))),
+                    .with_title(concat!("Ultimate Tex ", env!("CARGO_PKG_VERSION")))
+                    .with_window_icon(Some(icon)),
             )
             .with_disable_context_menu(true),
     );
 }
 
+// TODO: async for import/export methods
 #[component]
 fn App(cx: Scope) -> Element {
     // TODO: Is there a better way of managing this state?
     let app = use_ref(cx, App::default);
-    let messages = use_ref(cx, Vec::new);
+    let messages = use_ref(cx, Vec::<String>::new);
     let is_file_open = use_state(cx, || false);
     let is_batch_open = use_state(cx, || false);
     let is_help_open = use_state(cx, || false);
@@ -70,6 +75,19 @@ fn App(cx: Scope) -> Element {
 
     let disable_export =
         (app.read().settings.output_folder.is_none() && !save_in_same_folder) || **is_exporting;
+
+    let export_files = move |_| {
+        cx.spawn({
+            to_owned![is_exporting, messages, app];
+            async move {
+                is_exporting.set(true);
+                // TODO: Will this be easier with dioxus 0.5.0 and signals?
+                // tokio::task::spawn_blocking doesn't work properly with app.
+                *messages.write() = app.with(|a| a.convert_and_export_files().unwrap());
+                is_exporting.set(false);
+            }
+        });
+    };
 
     cx.render(rsx! {
         style { {include_str!("./pico.min.css")} }
@@ -194,11 +212,7 @@ fn App(cx: Scope) -> Element {
         button {
             style: "width: 150px;",
             disabled: disable_export,
-            onclick: move |_| {
-                is_exporting.set(true);
-                *messages.write() = app.with(|a| a.convert_and_export_files().unwrap());
-                is_exporting.set(false);
-            },
+            onclick: export_files,
             "Export"
         }
         hr {}
