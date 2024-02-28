@@ -4,6 +4,7 @@
 
 use dioxus::prelude::*;
 use dioxus_desktop::{tao::window::Icon, WindowBuilder};
+use dioxus_signals::use_signal;
 use image_dds::{ImageFormat, Mipmaps, Quality};
 use rfd::FileDialog;
 use strum::IntoEnumIterator;
@@ -31,12 +32,12 @@ fn main() {
 #[component]
 fn App(cx: Scope) -> Element {
     // TODO: Is there a better way of managing this state?
-    let app = use_ref(cx, App::default);
-    let messages = use_ref(cx, Vec::<String>::new);
-    let is_file_open = use_state(cx, || false);
-    let is_batch_open = use_state(cx, || false);
-    let is_help_open = use_state(cx, || false);
-    let is_exporting = use_state(cx, || false);
+    let app = use_signal(cx, App::default);
+    let messages = use_signal(cx, Vec::<String>::new);
+    let is_file_open = use_signal(cx, || false);
+    let is_batch_open = use_signal(cx, || false);
+    let is_help_open = use_signal(cx, || false);
+    let is_exporting = use_signal(cx, || false);
 
     // TODO: Clean up into more components?
     // Reduced options for global presets.
@@ -73,17 +74,15 @@ fn App(cx: Scope) -> Element {
         .map(|f| f.to_string_lossy().to_string())
         .unwrap_or("No folder selected".to_string());
 
-    let disable_export =
-        (app.read().settings.output_folder.is_none() && !save_in_same_folder) || **is_exporting;
+    let disable_export = (app.read().settings.output_folder.is_none() && !save_in_same_folder)
+        || *is_exporting.read();
 
     let export_files = move |_| {
         cx.spawn({
-            to_owned![is_exporting, messages, app];
             async move {
                 is_exporting.set(true);
-                // TODO: Will this be easier with dioxus 0.5.0 and signals?
-                // tokio::task::spawn_blocking doesn't work properly with app.
-                *messages.write() = app.with(|a| a.convert_and_export_files().unwrap());
+                // TODO: tokio::task::spawn_blocking doesn't work properly with app.
+                *messages.write() = app.with(|a| a.convert_and_export_files()).unwrap();
                 is_exporting.set(false);
             }
         });
