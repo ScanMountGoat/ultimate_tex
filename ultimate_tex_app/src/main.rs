@@ -211,7 +211,7 @@ fn App(cx: Scope) -> Element {
             // TODO: display the folder value
             rsx! {
                 div {
-                    class: "file-container",
+                    class: "grid-horizontal",
                     button {
                         style: "width: auto;",
                         class: "secondary",
@@ -226,13 +226,22 @@ fn App(cx: Scope) -> Element {
                         "Select Folder..."
                     }
                     div {
-                        class: "file-text",
+                        class: "message-text",
                         "{output_folder_text}"
                     }
                 }
             }
         }
-        button { style: "width: 150px;", disabled: disable_export, onclick: export_files, "Export" }
+        div {
+            class: "grid-horizontal",
+            button { style: "width: 150px;", disabled: disable_export, onclick: export_files, "Export" }
+            for message in messages.read().iter() {
+                div {
+                    class: "message-text",
+                    "{message}"
+                }
+            }
+        }
         hr {}
 
         // TODO: select appropriate option by default.
@@ -386,11 +395,11 @@ fn App(cx: Scope) -> Element {
                 tbody {
                     for (i , item) in app.read().settings.file_settings.iter().enumerate() {
                         tr { key: "{item.name}",
-                            th { img { src: "{app.read().png_thumbnails[i]}" } }
-                            th { "{item.name}" }
-                            th { "{item.format}" }
-                            th { "{item.dimensions.0}x{item.dimensions.1}x{item.dimensions.2}" }
-                            th {
+                            td { img { src: "{app.read().png_thumbnails[i]}" } }
+                            td { "{item.name}" }
+                            td { "{item.format}" }
+                            td { "{item.dimensions.0}x{item.dimensions.1}x{item.dimensions.2}" }
+                            td {
                                 match app.with(|a| a.settings.overrides.output_file_type) {
                                     Some(ty) => rsx! { "{ty}" },
                                     None => rsx!{
@@ -405,7 +414,7 @@ fn App(cx: Scope) -> Element {
                                     }
                                 }
                             }
-                            th {
+                            td {
                                 match app.with(|a| a.settings.overrides.output_format) {
                                     Some(ty) => rsx! { "{ty}" },
                                     None => rsx!{
@@ -420,7 +429,7 @@ fn App(cx: Scope) -> Element {
                                     }
                                 }
                             }
-                            th {
+                            td {
                                 match app.with(|a| a.settings.overrides.output_quality) {
                                     Some(ty) => rsx! { "{ty}" },
                                     None => rsx!{
@@ -435,7 +444,7 @@ fn App(cx: Scope) -> Element {
                                     }
                                 }
                             }
-                            th {
+                            td {
                                 match app.with(|a| a.settings.overrides.mipmaps) {
                                     Some(ty) => rsx! { "{ty}" },
                                     None => rsx!{
@@ -450,7 +459,7 @@ fn App(cx: Scope) -> Element {
                                     }
                                 }
                             }
-                            th {
+                            td {
                                 button {
                                     class: "secondary",
                                     onclick: move |_| {
@@ -470,13 +479,6 @@ fn App(cx: Scope) -> Element {
                     class: "centered-text",
                     "Drag and drop image files onto the window or add files using File > Add Files..."
                 }
-            }
-        }
-
-        footer {
-            hr {}
-            for message in messages.read().iter() {
-                "{message}"
             }
         }
     })

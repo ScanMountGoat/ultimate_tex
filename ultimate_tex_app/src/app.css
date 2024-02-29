@@ -59,22 +59,29 @@ body {
     padding: 10px;
 }
 
-footer {
-    position: fixed;
-    bottom: 0;
-    width: 100%;
-    margin-bottom: 10px;
-}
-
 nav {
     height: 15px;
 }
 
-.file-container {
+.grid-horizontal {
     display: flex;
     justify-content: start;
     align-content: center;
     align-items: center;
+}
+
+td {
+    font-size: 12px;
+}
+
+select {
+    display: block;
+    margin: auto;
+}
+
+button {
+    margin-top: 0.25rem;
+    margin-bottom: 0.25rem;
 }
 
 img {
@@ -82,8 +89,7 @@ img {
     height: 32px;
 }
 
-.file-text {
-    color: var(--muted-color);
+.message-text {
     height: 100%;
     text-align: center;
     margin: 5px;
