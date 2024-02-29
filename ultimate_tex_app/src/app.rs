@@ -10,12 +10,9 @@ use rfd::FileDialog;
 use ultimate_tex::{ImageFile, NutexbFile};
 
 // TODO: Add proper logging using events?
-#[derive(Default)]
+#[derive(Clone, Default)]
 pub struct App {
-    // Store settings separately to pass to and from javascript.
-    // Image data should only ever be accessible from Rust.
     pub settings: AppSettings,
-    pub files: Vec<ImageFile>,
     pub png_thumbnails: Vec<String>,
 }
 
@@ -48,45 +45,14 @@ pub struct ImageFileSettings {
 }
 
 impl App {
-    pub fn add_files(&mut self) {
-        // TODO: make this async to not block?
-        if let Some(files) = FileDialog::new()
-            .add_filter(
-                "image files",
-                &["png", "tiff", "nutexb", "bntx", "jpeg", "jpg", "dds"],
-            )
-            .pick_files()
-        {
-            let start = std::time::Instant::now();
-
-            // Only the expensive file reading benefits from parallelism.
-            let new_files: Vec<_> = files
-                .par_iter()
-                .map(|file| ImageFile::read(file).unwrap())
-                .collect();
-            let new_thumbnails: Vec<_> = new_files.par_iter().map(encode_png_base64).collect();
-            for (file, image) in files.iter().zip(new_files.iter()) {
-                self.settings
-                    .file_settings
-                    .push(ImageFileSettings::from_image(file.clone(), image));
-            }
-            self.files.extend(new_files);
-            self.png_thumbnails.extend(new_thumbnails);
-
-            println!("Added {} files in {:?}", files.len(), start.elapsed());
-        }
-    }
-
     pub fn remove_file(&mut self, index: usize) {
-        self.files.remove(index);
         self.settings.file_settings.remove(index);
         self.png_thumbnails.remove(index);
     }
 
     pub fn clear_files(&mut self) {
-        self.files.clear();
-        self.settings.file_settings.clear();
-        self.png_thumbnails.clear();
+        self.settings.file_settings = Vec::new();
+        self.png_thumbnails = Vec::new();
     }
 
     pub fn convert_and_export_files(&self) -> Result<Vec<String>, Box<dyn Error>> {
@@ -100,8 +66,7 @@ impl App {
             .settings
             .file_settings
             .par_iter()
-            .zip(self.files.par_iter())
-            .filter_map(|(settings, file)| {
+            .filter_map(|settings| {
                 let output = if self.settings.save_in_same_folder {
                     settings.path.parent()
                 } else {
@@ -110,7 +75,8 @@ impl App {
 
                 output.and_then(|output| {
                     // Collect error messages to display to the user.
-                    match convert_and_save_file(output, settings, file, &self.settings.overrides) {
+                    let file = ImageFile::from_file(&settings.path).ok()?;
+                    match convert_and_save_file(output, settings, &file, &self.settings.overrides) {
                         Ok(_) => None,
                         Err(e) => Some(format!("Error converting {}: {e}", settings.name)),
                     }
@@ -123,12 +89,44 @@ impl App {
             0,
             format!(
                 "Successfully converted {} of {} file(s)",
-                self.files.len() - messages.len(),
-                self.files.len(),
+                self.settings.file_settings.len() - messages.len(),
+                self.settings.file_settings.len(),
             ),
         );
 
         Ok(messages)
+    }
+}
+
+pub fn pick_files() -> Option<(Vec<String>, Vec<ImageFileSettings>)> {
+    // Don't modify app directly to make it easy to run in a background thread.
+    if let Some(files) = FileDialog::new()
+        .add_filter(
+            "image files",
+            &["png", "tiff", "nutexb", "bntx", "jpeg", "jpg", "dds"],
+        )
+        .pick_files()
+    {
+        let start = std::time::Instant::now();
+
+        // Only the expensive file reading benefits from parallelism.
+        let new_files: Vec<_> = files
+            .par_iter()
+            .map(|file| ImageFile::from_file(file).unwrap())
+            .collect();
+        let new_thumbnails: Vec<_> = new_files.par_iter().map(encode_png_base64).collect();
+
+        let new_settings = files
+            .iter()
+            .zip(new_files.iter())
+            .map(|(file, image)| ImageFileSettings::from_image(file.clone(), image))
+            .collect();
+
+        println!("Loaded {} files in {:?}", files.len(), start.elapsed());
+
+        Some((new_thumbnails, new_settings))
+    } else {
+        None
     }
 }
 

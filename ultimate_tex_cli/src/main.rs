@@ -33,7 +33,7 @@ fn main() {
     let input = Path::new(&args.input);
     let output = Path::new(&args.output);
 
-    let input_image = ImageFile::read(input).unwrap();
+    let input_image = ImageFile::from_file(input).unwrap();
 
     let format = args
         .format

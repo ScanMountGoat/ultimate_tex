@@ -12,6 +12,8 @@ use strum::IntoEnumIterator;
 mod app;
 use app::{optimize_nutexb_files, App, ImageFileType};
 
+use crate::app::pick_files;
+
 fn main() {
     let image = image_dds::image::load_from_memory(include_bytes!("../icons/32x32.png")).unwrap();
     let icon = Icon::from_rgba(image.into_rgba8().into_raw(), 32, 32).unwrap();
@@ -28,7 +30,6 @@ fn main() {
     );
 }
 
-// TODO: async for import/export methods
 #[component]
 fn App(cx: Scope) -> Element {
     // TODO: Is there a better way of managing this state?
@@ -77,12 +78,38 @@ fn App(cx: Scope) -> Element {
     let disable_export = (app.read().settings.output_folder.is_none() && !save_in_same_folder)
         || *is_exporting.read();
 
+    let add_files = move |_| {
+        is_file_open.set(false);
+
+        cx.spawn({
+            async move {
+                if let Some((new_thumbnails, new_settings)) =
+                    tokio::task::spawn_blocking(move || pick_files())
+                        .await
+                        .unwrap()
+                {
+                    app.with_mut(|a| {
+                        a.png_thumbnails.extend(new_thumbnails);
+                        a.settings.file_settings.extend(new_settings);
+                    });
+                }
+            }
+        });
+    };
+
     let export_files = move |_| {
         cx.spawn({
             async move {
                 is_exporting.set(true);
-                // TODO: tokio::task::spawn_blocking doesn't work properly with app.
-                *messages.write() = app.with(|a| a.convert_and_export_files()).unwrap();
+
+                // The app doesn't store image data, so this clone is cheap.
+                let app = app.read().clone();
+                let new_messages =
+                    tokio::task::spawn_blocking(move || app.convert_and_export_files().unwrap())
+                        .await
+                        .unwrap();
+
+                *messages.write() = new_messages;
                 is_exporting.set(false);
             }
         });
@@ -106,10 +133,7 @@ fn App(cx: Scope) -> Element {
                         }
                         ul { role: "listbox",
                             li {
-                                a { onclick: move |_| {
-                                        app.with_mut(|a| a.add_files());
-                                        is_file_open.set(false);
-                                    },
+                                a { onclick: add_files,
                                     "Add Files..."
                                 }
                             }
@@ -208,12 +232,7 @@ fn App(cx: Scope) -> Element {
                 }
             }
         }
-        button {
-            style: "width: 150px;",
-            disabled: disable_export,
-            onclick: export_files,
-            "Export"
-        }
+        button { style: "width: 150px;", disabled: disable_export, onclick: export_files, "Export" }
         hr {}
 
         // TODO: select appropriate option by default.

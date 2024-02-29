@@ -13,7 +13,7 @@ pub enum ImageFile {
 }
 
 impl ImageFile {
-    pub fn read<P: AsRef<Path>>(input: P) -> Result<Self, Box<dyn Error>> {
+    pub fn from_file<P: AsRef<Path>>(input: P) -> Result<Self, Box<dyn Error>> {
         match input
             .as_ref()
             .extension()
