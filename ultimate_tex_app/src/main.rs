@@ -132,11 +132,7 @@ fn App(cx: Scope) -> Element {
                             "File"
                         }
                         ul { role: "listbox",
-                            li {
-                                a { onclick: add_files,
-                                    "Add Files..."
-                                }
-                            }
+                            li { a { onclick: add_files, "Add Files..." } }
                             li {
                                 a { onclick: move |_| {
                                         app.with_mut(|a| a.clear_files());
@@ -232,14 +228,10 @@ fn App(cx: Scope) -> Element {
                 }
             }
         }
-        div {
-            class: "grid-horizontal",
+        div { class: "grid-horizontal",
             button { style: "width: 150px;", disabled: disable_export, onclick: export_files, "Export" }
             for message in messages.read().iter() {
-                div {
-                    class: "message-text",
-                    "{message}"
-                }
+                div { class: "message-text", "{message}" }
             }
         }
         hr {}
@@ -404,11 +396,14 @@ fn App(cx: Scope) -> Element {
                                     Some(ty) => rsx! { "{ty}" },
                                     None => rsx!{
                                         select {
+                                            value: "{item.output_file_type}",
                                             onchange: move |e| {
                                                 app.with_mut(|a| a.settings.file_settings[i].output_file_type = e.value.parse().unwrap());
                                             },
                                             for variant in ImageFileType::iter() {
-                                                option { value: "{item.output_file_type}", "{variant}" }
+                                                option {
+                                                    value: "{variant}", "{variant}" 
+                                                }
                                             }
                                         }
                                     }
@@ -419,11 +414,12 @@ fn App(cx: Scope) -> Element {
                                     Some(ty) => rsx! { "{ty}" },
                                     None => rsx!{
                                         select {
+                                            value: "{item.output_format}",
                                             onchange: move |e| {
                                                 app.with_mut(|a| a.settings.file_settings[i].output_format = e.value.parse().unwrap());
                                             },
                                             for variant in ImageFormat::iter() {
-                                                option { value: "{item.output_format}", "{variant}" }
+                                                option { value: "{variant}", "{variant}" }
                                             }
                                         }
                                     }
@@ -434,11 +430,12 @@ fn App(cx: Scope) -> Element {
                                     Some(ty) => rsx! { "{ty}" },
                                     None => rsx!{
                                         select {
+                                            value: "{item.output_quality}",
                                             onchange: move |e| {
                                                 app.with_mut(|a| a.settings.file_settings[i].output_quality = e.value.parse().unwrap());
                                             },
                                             for variant in Quality::iter() {
-                                                option { value: "{item.output_quality}", "{variant}" }
+                                                option { value: "{variant}", "{variant}" }
                                             }
                                         }
                                     }
@@ -449,11 +446,12 @@ fn App(cx: Scope) -> Element {
                                     Some(ty) => rsx! { "{ty}" },
                                     None => rsx!{
                                         select {
+                                            value: "{item.output_mipmaps}",
                                             onchange: move |e| {
                                                 app.with_mut(|a| a.settings.file_settings[i].output_mipmaps = e.value.parse().unwrap());
                                             },
                                             for variant in Mipmaps::iter() {
-                                                option { value: "{item.output_mipmaps}", "{variant}" }
+                                                option { value: "{variant}", "{variant}" }
                                             }
                                         }
                                     }
