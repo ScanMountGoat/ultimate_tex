@@ -107,27 +107,31 @@ pub fn pick_files() -> Option<(Vec<String>, Vec<ImageFileSettings>)> {
         )
         .pick_files()
     {
-        let start = std::time::Instant::now();
-
-        // Only the expensive file reading benefits from parallelism.
-        let new_files: Vec<_> = files
-            .par_iter()
-            .map(|file| ImageFile::from_file(file).unwrap())
-            .collect();
-        let new_thumbnails: Vec<_> = new_files.par_iter().map(encode_png_base64).collect();
-
-        let new_settings = files
-            .iter()
-            .zip(new_files.iter())
-            .map(|(file, image)| ImageFileSettings::from_image(file.clone(), image))
-            .collect();
-
-        println!("Loaded {} files in {:?}", files.len(), start.elapsed());
-
+        let (new_thumbnails, new_settings) = load_files(files);
         Some((new_thumbnails, new_settings))
     } else {
         None
     }
+}
+
+pub fn load_files(files: Vec<PathBuf>) -> (Vec<String>, Vec<ImageFileSettings>) {
+    let start = std::time::Instant::now();
+
+    // Only the expensive file reading benefits from parallelism.
+    let new_files: Vec<_> = files
+        .par_iter()
+        .map(|file| ImageFile::from_file(file).unwrap())
+        .collect();
+    let new_thumbnails: Vec<_> = new_files.par_iter().map(encode_png_base64).collect();
+
+    let new_settings = files
+        .iter()
+        .zip(new_files.iter())
+        .map(|(file, image)| ImageFileSettings::from_image(file.clone(), image))
+        .collect();
+
+    println!("Loaded {} files in {:?}", files.len(), start.elapsed());
+    (new_thumbnails, new_settings)
 }
 
 fn encode_png_base64(f: &ImageFile) -> String {

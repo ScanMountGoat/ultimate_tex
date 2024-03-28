@@ -2,7 +2,11 @@
 // Prevents additional console window on Windows in release.
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
+use std::path::PathBuf;
+use std::sync::Arc;
+
 use dioxus::prelude::*;
+use dioxus::{html::HasFileData, prelude::dioxus_elements::FileEngine};
 use dioxus_desktop::{tao::window::Icon, Config, WindowBuilder};
 use image_dds::{ImageFormat, Mipmaps, Quality};
 use rfd::FileDialog;
@@ -11,7 +15,7 @@ use strum::IntoEnumIterator;
 mod app;
 use app::{optimize_nutexb_files, App, ImageFileType};
 
-use crate::app::pick_files;
+use crate::app::{load_files, pick_files};
 
 fn main() {
     let image = image_dds::image::load_from_memory(include_bytes!("../icons/32x32.png")).unwrap();
@@ -93,6 +97,18 @@ fn app() -> Element {
                     });
                 }
             }
+        });
+    };
+
+    let add_dropped_files = move |file_engine: Arc<dyn FileEngine>| async move {
+        let files = file_engine.files();
+        let paths = files.iter().map(PathBuf::from).collect();
+        let (new_thumbnails, new_settings) = tokio::task::spawn_blocking(move || load_files(paths))
+            .await
+            .unwrap();
+        app.with_mut(|a| {
+            a.png_thumbnails.extend(new_thumbnails);
+            a.settings.file_settings.extend(new_settings);
         });
     };
 
@@ -363,6 +379,13 @@ fn app() -> Element {
         }
 
         figure {
+            ondrop: move |e| async move {
+                // TODO: make this fill the remaining space.
+                // TODO: Fix this on windows.
+                if let Some(file_engine) = e.files() {
+                    add_dropped_files(file_engine).await;
+                }
+            },
             table { role: "grid",
                 thead {
                     tr {
