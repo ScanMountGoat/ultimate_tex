@@ -5,9 +5,8 @@ authors = ["ScanMountGoat <>"]
 edition = "2021"
 
 [dependencies]
-dioxus-desktop = "0.4.3"
-dioxus = "0.4.3"
-dioxus-signals = "0.4.3"
+dioxus-desktop = "0.5.0"
+dioxus = {version = "0.5.0", features = ["desktop"] }
 serde_json = "1.0"
 serde = { version = "1.0", features = ["derive"] }
 ultimate_tex = { path = "../ultimate_tex" }
@@ -16,6 +15,6 @@ rayon = "1.7.0"
 open = "5.0.0"
 globwalk = "0.8.1"
 strum = { version = "0.24", features = ["derive"] }
-rfd = "0.11.4"
+rfd = "0.12.0"
 base64 = "0.21.7"
 tokio = "1.0"

@@ -3,8 +3,7 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
 use dioxus::prelude::*;
-use dioxus_desktop::{tao::window::Icon, WindowBuilder};
-use dioxus_signals::use_signal;
+use dioxus_desktop::{tao::window::Icon, Config, WindowBuilder};
 use image_dds::{ImageFormat, Mipmaps, Quality};
 use rfd::FileDialog;
 use strum::IntoEnumIterator;
@@ -18,27 +17,27 @@ fn main() {
     let image = image_dds::image::load_from_memory(include_bytes!("../icons/32x32.png")).unwrap();
     let icon = Icon::from_rgba(image.into_rgba8().into_raw(), 32, 32).unwrap();
 
-    dioxus_desktop::launch_cfg(
-        App,
-        dioxus_desktop::Config::new()
-            .with_window(
-                WindowBuilder::new()
-                    .with_title(concat!("Ultimate Tex ", env!("CARGO_PKG_VERSION")))
-                    .with_window_icon(Some(icon)),
-            )
-            .with_disable_context_menu(true),
-    );
+    LaunchBuilder::desktop()
+        .with_cfg(
+            Config::new()
+                .with_window(
+                    WindowBuilder::new()
+                        .with_title(concat!("Ultimate Tex ", env!("CARGO_PKG_VERSION")))
+                        .with_window_icon(Some(icon)),
+                )
+                .with_disable_context_menu(true),
+        )
+        .launch(app);
 }
 
-#[component]
-fn App(cx: Scope) -> Element {
+fn app() -> Element {
     // TODO: Is there a better way of managing this state?
-    let app = use_signal(cx, App::default);
-    let messages = use_signal(cx, Vec::<String>::new);
-    let is_file_open = use_signal(cx, || false);
-    let is_batch_open = use_signal(cx, || false);
-    let is_help_open = use_signal(cx, || false);
-    let is_exporting = use_signal(cx, || false);
+    let mut app = use_signal(App::default);
+    let mut messages = use_signal(Vec::<String>::new);
+    let mut is_file_open = use_signal(|| false);
+    let mut is_batch_open = use_signal(|| false);
+    let mut is_help_open = use_signal(|| false);
+    let mut is_exporting = use_signal(|| false);
 
     // TODO: Clean up into more components?
     // Reduced options for global presets.
@@ -81,7 +80,7 @@ fn App(cx: Scope) -> Element {
     let add_files = move |_| {
         is_file_open.set(false);
 
-        cx.spawn({
+        spawn({
             async move {
                 if let Some((new_thumbnails, new_settings)) =
                     tokio::task::spawn_blocking(move || pick_files())
@@ -98,7 +97,7 @@ fn App(cx: Scope) -> Element {
     };
 
     let export_files = move |_| {
-        cx.spawn({
+        spawn({
             async move {
                 is_exporting.set(true);
 
@@ -115,7 +114,7 @@ fn App(cx: Scope) -> Element {
         });
     };
 
-    cx.render(rsx! {
+    rsx! {
         style { {include_str!("./pico.min.css")} }
         style { {include_str!("./app.css")} }
 
@@ -180,7 +179,9 @@ fn App(cx: Scope) -> Element {
                             li {
                                 a { onclick: move |_| {
                                         is_help_open.set(false);
-                                        if let Err(_) = open::that("https://github.com/ScanMountGoat/ultimate_tex/wiki") {}
+                                        if let Err(_) = open::that(
+                                            "https://github.com/ScanMountGoat/ultimate_tex/wiki",
+                                        ) {}
                                     },
                                     "Wiki"
                                 }
@@ -197,7 +198,7 @@ fn App(cx: Scope) -> Element {
                 r#type: "checkbox",
                 checked: "{save_in_same_folder}",
                 onchange: move |e| {
-                    app.with_mut(|a| a.settings.save_in_same_folder = e.value.parse().unwrap());
+                    app.with_mut(|a| a.settings.save_in_same_folder = e.value().parse().unwrap());
                 }
             }
             "Save to original folder"
@@ -205,27 +206,21 @@ fn App(cx: Scope) -> Element {
         if !save_in_same_folder {
             // TODO: use an input with type directory instead?
             // TODO: display the folder value
-            rsx! {
-                div {
-                    class: "grid-horizontal",
-                    button {
-                        style: "width: auto;",
-                        class: "secondary",
-                        onclick: move |_| {
-                            if let Some(folder) = FileDialog::new()
-                                .set_title("Select Nutexb Root Folder")
-                                .pick_folder()
-                            {
-                                app.with_mut(|a| a.settings.output_folder = Some(folder));
-                            }
-                        },
-                        "Select Folder..."
-                    }
-                    div {
-                        class: "message-text",
-                        "{output_folder_text}"
-                    }
+            div { class: "grid-horizontal",
+                button {
+                    style: "width: auto;",
+                    class: "secondary",
+                    onclick: move |_| {
+                        if let Some(folder) = FileDialog::new()
+                            .set_title("Select Nutexb Root Folder")
+                            .pick_folder()
+                        {
+                            app.with_mut(|a| a.settings.output_folder = Some(folder));
+                        }
+                    },
+                    "Select Folder..."
                 }
+                div { class: "message-text", "{output_folder_text}" }
             }
         }
         div { class: "grid-horizontal",
@@ -249,7 +244,7 @@ fn App(cx: Scope) -> Element {
                             value: "{option}",
                             oninput: move |e| {
                                 app.with_mut(|a| {
-                                    a.settings.overrides.output_file_type = Some(e.value.parse().unwrap());
+                                    a.settings.overrides.output_file_type = Some(e.value().parse().unwrap());
                                 });
                             }
                         }
@@ -271,99 +266,97 @@ fn App(cx: Scope) -> Element {
             }
 
             if show_compressed_options {
-                rsx! {
-                    fieldset {
-                        legend { strong { "Output Format" } }
-                        for (option, option_name) in preset_format_types {
-                            label {
-                                r#for: "outputFormat{option}",
-                                input {
-                                    r#type: "radio",
-                                    id: "outputFormat{option}",
-                                    name: "outputFormat",
-                                    value: "{option}",
-                                    oninput: move |e| {
-                                        app.with_mut(|a| a.settings.overrides.output_format = Some(e.value.parse().unwrap()));
-                                    }
-                                }
-                                option_name
-                            }
-                        }
-                        label {
-                            r#for: "outputFormatNull",
+                fieldset {
+                    legend { strong { "Output Format" } }
+                    for (option , option_name) in preset_format_types {
+                        label { r#for: "outputFormat{option}",
                             input {
                                 r#type: "radio",
-                                id: "outputFormatNull",
+                                id: "outputFormat{option}",
                                 name: "outputFormat",
-                                value: "",
-                                oninput: move |_| {
-                                    app.with_mut(|a| a.settings.overrides.output_format = None);
+                                value: "{option}",
+                                oninput: move |e| {
+                                    app.with_mut(|a| {
+                                        a.settings.overrides.output_format = Some(e.value().parse().unwrap());
+                                    });
                                 }
                             }
-                            "Custom..."
+                            {option_name}
                         }
                     }
-                    fieldset {
-                        legend { strong { "Mipmaps" } }
-                        for (option, option_name) in preset_mipmap_types {
-                            label {
-                                r#for: "mipmaps{option}",
-                                input {
-                                    r#type: "radio",
-                                    id: "mipmaps{option}",
-                                    name: "mipmaps",
-                                    value: "{option}",
-                                    oninput: move |e| {
-                                        app.with_mut(|a| a.settings.overrides.mipmaps = Some(e.value.parse().unwrap()));
-                                    }
-                                }
-                                option_name
+                    label { r#for: "outputFormatNull",
+                        input {
+                            r#type: "radio",
+                            id: "outputFormatNull",
+                            name: "outputFormat",
+                            value: "",
+                            oninput: move |_| {
+                                app.with_mut(|a| a.settings.overrides.output_format = None);
                             }
                         }
-                        label {
-                            r#for: "mipmapsNull",
+                        "Custom..."
+                    }
+                }
+                fieldset {
+                    legend { strong { "Mipmaps" } }
+                    for (option , option_name) in preset_mipmap_types {
+                        label { r#for: "mipmaps{option}",
                             input {
                                 r#type: "radio",
-                                id: "mipmapsNull",
+                                id: "mipmaps{option}",
                                 name: "mipmaps",
-                                value: "",
-                                oninput: move |_| {
-                                    app.with_mut(|a| a.settings.overrides.mipmaps = None);
+                                value: "{option}",
+                                oninput: move |e| {
+                                    app.with_mut(|a| {
+                                        a.settings.overrides.mipmaps = Some(e.value().parse().unwrap());
+                                    });
                                 }
                             }
-                            "Custom..."
+                            {option_name}
                         }
                     }
-                    fieldset {
-                        legend { strong { "Compression" } }
-                        for option in Quality::iter() {
-                            label {
-                                r#for: "compression{option}",
-                                input {
-                                    r#type: "radio",
-                                    id: "compression{option}",
-                                    name: "compression",
-                                    value: "{option}",
-                                    oninput: move |e| {
-                                        app.with_mut(|a| a.settings.overrides.output_quality = Some(e.value.parse().unwrap()));
-                                    }
-                                }
-                                "{option}"
+                    label { r#for: "mipmapsNull",
+                        input {
+                            r#type: "radio",
+                            id: "mipmapsNull",
+                            name: "mipmaps",
+                            value: "",
+                            oninput: move |_| {
+                                app.with_mut(|a| a.settings.overrides.mipmaps = None);
                             }
                         }
-                        label {
-                            r#for: "compressionNull",
+                        "Custom..."
+                    }
+                }
+                fieldset {
+                    legend { strong { "Compression" } }
+                    for option in Quality::iter() {
+                        label { r#for: "compression{option}",
                             input {
                                 r#type: "radio",
-                                id: "compressionNull",
+                                id: "compression{option}",
                                 name: "compression",
-                                value: "",
-                                oninput: move |_| {
-                                    app.with_mut(|a| a.settings.overrides.output_quality = None);
+                                value: "{option}",
+                                oninput: move |e| {
+                                    app.with_mut(|a| {
+                                        a.settings.overrides.output_quality = Some(e.value().parse().unwrap());
+                                    });
                                 }
                             }
-                            "Custom..."
+                            "{option}"
                         }
+                    }
+                    label { r#for: "compressionNull",
+                        input {
+                            r#type: "radio",
+                            id: "compressionNull",
+                            name: "compression",
+                            value: "",
+                            oninput: move |_| {
+                                app.with_mut(|a| a.settings.overrides.output_quality = None);
+                            }
+                        }
+                        "Custom..."
                     }
                 }
             }
@@ -398,11 +391,11 @@ fn App(cx: Scope) -> Element {
                                         select {
                                             value: "{item.output_file_type}",
                                             onchange: move |e| {
-                                                app.with_mut(|a| a.settings.file_settings[i].output_file_type = e.value.parse().unwrap());
+                                                app.with_mut(|a| a.settings.file_settings[i].output_file_type = e.value().parse().unwrap());
                                             },
                                             for variant in ImageFileType::iter() {
                                                 option {
-                                                    value: "{variant}", "{variant}" 
+                                                    value: "{variant}", "{variant}"
                                                 }
                                             }
                                         }
@@ -416,7 +409,7 @@ fn App(cx: Scope) -> Element {
                                         select {
                                             value: "{item.output_format}",
                                             onchange: move |e| {
-                                                app.with_mut(|a| a.settings.file_settings[i].output_format = e.value.parse().unwrap());
+                                                app.with_mut(|a| a.settings.file_settings[i].output_format = e.value().parse().unwrap());
                                             },
                                             for variant in ImageFormat::iter() {
                                                 option { value: "{variant}", "{variant}" }
@@ -432,7 +425,7 @@ fn App(cx: Scope) -> Element {
                                         select {
                                             value: "{item.output_quality}",
                                             onchange: move |e| {
-                                                app.with_mut(|a| a.settings.file_settings[i].output_quality = e.value.parse().unwrap());
+                                                app.with_mut(|a| a.settings.file_settings[i].output_quality = e.value().parse().unwrap());
                                             },
                                             for variant in Quality::iter() {
                                                 option { value: "{variant}", "{variant}" }
@@ -448,7 +441,7 @@ fn App(cx: Scope) -> Element {
                                         select {
                                             value: "{item.output_mipmaps}",
                                             onchange: move |e| {
-                                                app.with_mut(|a| a.settings.file_settings[i].output_mipmaps = e.value.parse().unwrap());
+                                                app.with_mut(|a| a.settings.file_settings[i].output_mipmaps = e.value().parse().unwrap());
                                             },
                                             for variant in Mipmaps::iter() {
                                                 option { value: "{variant}", "{variant}" }
@@ -472,14 +465,11 @@ fn App(cx: Scope) -> Element {
             }
         }
         if app.read().settings.file_settings.is_empty() {
-            rsx! {
-                div {
-                    class: "centered-text",
-                    "Drag and drop image files onto the window or add files using File > Add Files..."
-                }
+            div { class: "centered-text",
+                "Drag and drop image files onto the window or add files using File > Add Files..."
             }
         }
-    })
+    }
 }
 
 fn is_compressed_type(ty: ImageFileType) -> bool {
