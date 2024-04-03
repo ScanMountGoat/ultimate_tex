@@ -379,9 +379,9 @@ fn app() -> Element {
         }
 
         figure {
+            // TODO: make this fill the remaining space.
+            // TODO: Fix this on windows.
             ondrop: move |e| async move {
-                // TODO: make this fill the remaining space.
-                // TODO: Fix this on windows.
                 if let Some(file_engine) = e.files() {
                     add_dropped_files(file_engine).await;
                 }
@@ -412,13 +412,14 @@ fn app() -> Element {
                                     Some(ty) => rsx! { "{ty}" },
                                     None => rsx!{
                                         select {
-                                            value: "{item.output_file_type}",
                                             onchange: move |e| {
                                                 app.with_mut(|a| a.settings.file_settings[i].output_file_type = e.value().parse().unwrap());
                                             },
                                             for variant in ImageFileType::iter() {
                                                 option {
-                                                    value: "{variant}", "{variant}"
+                                                    selected: item.output_file_type == variant,
+                                                    value: "{variant}",
+                                                    "{variant}"
                                                 }
                                             }
                                         }
@@ -430,12 +431,15 @@ fn app() -> Element {
                                     Some(ty) => rsx! { "{ty}" },
                                     None => rsx!{
                                         select {
-                                            value: "{item.output_format}",
                                             onchange: move |e| {
                                                 app.with_mut(|a| a.settings.file_settings[i].output_format = e.value().parse().unwrap());
                                             },
                                             for variant in ImageFormat::iter() {
-                                                option { value: "{variant}", "{variant}" }
+                                                option {
+                                                    selected: item.output_format == variant,
+                                                    value: "{variant}",
+                                                    "{variant}"
+                                                }
                                             }
                                         }
                                     }
@@ -446,12 +450,15 @@ fn app() -> Element {
                                     Some(ty) => rsx! { "{ty}" },
                                     None => rsx!{
                                         select {
-                                            value: "{item.output_quality}",
                                             onchange: move |e| {
                                                 app.with_mut(|a| a.settings.file_settings[i].output_quality = e.value().parse().unwrap());
                                             },
                                             for variant in Quality::iter() {
-                                                option { value: "{variant}", "{variant}" }
+                                                option {
+                                                    selected: item.output_quality == variant,
+                                                    value: "{variant}",
+                                                    "{variant}"
+                                                }
                                             }
                                         }
                                     }
@@ -462,12 +469,14 @@ fn app() -> Element {
                                     Some(ty) => rsx! { "{ty}" },
                                     None => rsx!{
                                         select {
-                                            value: "{item.output_mipmaps}",
                                             onchange: move |e| {
                                                 app.with_mut(|a| a.settings.file_settings[i].output_mipmaps = e.value().parse().unwrap());
                                             },
                                             for variant in Mipmaps::iter() {
-                                                option { value: "{variant}", "{variant}" }
+                                                option {
+                                                    selected: item.output_mipmaps == variant,
+                                                    value: "{variant}", "{variant}"
+                                                }
                                             }
                                         }
                                     }
