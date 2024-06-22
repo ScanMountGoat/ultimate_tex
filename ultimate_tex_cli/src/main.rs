@@ -38,7 +38,7 @@ fn main() {
     let format = args
         .format
         .map(|s| image_dds::ImageFormat::from_str(&s).unwrap())
-        .unwrap_or(image_dds::ImageFormat::BC7Unorm);
+        .unwrap_or(image_dds::ImageFormat::BC7RgbaUnorm);
 
     let quality = image_dds::Quality::Fast;
 

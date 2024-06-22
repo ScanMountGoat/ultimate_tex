@@ -52,8 +52,8 @@ fn app() -> Element {
         ImageFileType::Bntx,
     ];
     let preset_format_types = [
-        (ImageFormat::BC7Srgb, "Color (sRGB) + Alpha"),
-        (ImageFormat::BC7Unorm, "Color (Linear) + Alpha"),
+        (ImageFormat::BC7RgbaUnormSrgb, "Color (sRGB) + Alpha"),
+        (ImageFormat::BC7RgbaUnorm, "Color (Linear) + Alpha"),
     ];
     let preset_mipmap_types = [
         (Mipmaps::GeneratedAutomatic, "Enabled"),
