@@ -21,7 +21,7 @@ jobs:
       uses: baptiste0928/cargo-install@v2
       with:
         crate: tauri-cli
-        version: "1.5"
+        version: "=1.5.7"
         locked: false
         args: --debug
     - name: Build
@@ -61,7 +61,7 @@ jobs:
       uses: baptiste0928/cargo-install@v2
       with:
         crate: tauri-cli
-        version: "1.5"
+        version: "=1.5.7"
         locked: false
         args: --debug
     - name: Install Packages
@@ -119,7 +119,7 @@ jobs:
       uses: baptiste0928/cargo-install@v2
       with:
         crate: tauri-cli
-        version: "1.5"
+        version: "=1.5.7"
         locked: false
         args: --debug
     - name: Install Packages
