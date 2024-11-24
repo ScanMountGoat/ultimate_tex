@@ -272,7 +272,7 @@ dependencies = [
 [[package]]
 name = "bntx"
 version = "0.1.0"
-source = "git+https://github.com/ScanMountGoat/bntx?rev=73fe278#73fe278fdbad69a0358e8bf65a0555f06fb8ac1b"
+source = "git+https://github.com/azel-s/bntx#3f7392fac902066cafdda1426503f4c0b81e17f6"
 dependencies = [
  "binrw 0.11.2",
  "ddsfile",
