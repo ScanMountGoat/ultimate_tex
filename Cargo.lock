@@ -443,7 +443,7 @@ source = "git+https://github.com/ScanMountGoat/bntx?rev=73fe278#73fe278fdbad69a0
 dependencies = [
  "binrw 0.11.2",
  "ddsfile",
- "image",
+ "image 0.24.9",
  "tegra_swizzle",
  "thiserror",
 ]
@@ -489,6 +489,12 @@ name = "byteorder"
 version = "1.5.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "1fd0f2584146f6f2ef48085050886acf353beff7305ebd1ae69500e27c67f64b"
+
+[[package]]
+name = "byteorder-lite"
+version = "0.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "8f1fe948ff07f4bd06c30984e69f5b4899c516a3ef74f34df92a2df2ab535495"
 
 [[package]]
 name = "bytes"
@@ -2405,16 +2411,27 @@ dependencies = [
 ]
 
 [[package]]
-name = "image_dds"
-version = "0.5.1"
+name = "image"
+version = "0.25.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "aeb76fb263814aa9dcc4370dda5b3c129ec9b711f5076ae584035c87db3ddc1f"
+checksum = "cd6f44aed642f18953a158afeb30206f4d50da59fbc66ecb53c66488de73563b"
+dependencies = [
+ "bytemuck",
+ "byteorder-lite",
+ "num-traits",
+]
+
+[[package]]
+name = "image_dds"
+version = "0.6.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "84c6d1a2d80bc7dd2928b2a72a46d71bccbb6becf8ce207522b0b92daf0a417f"
 dependencies = [
  "bcdec_rs",
  "bytemuck",
  "ddsfile",
  "half",
- "image",
+ "image 0.25.5",
  "intel_tex_2",
  "serde",
  "strum 0.26.3",
@@ -2461,9 +2478,9 @@ dependencies = [
 
 [[package]]
 name = "intel_tex_2"
-version = "0.3.0"
+version = "0.4.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "410e8e64fd296f11254dba8fccdc2ed35d8df41592fa96785ffc9877b6a9aaa5"
+checksum = "bd699c0e6adcac28c06db24a220c834c8ec811e0d2d80f0261bb14e01737b4dc"
 dependencies = [
  "ispc_rt",
 ]
