@@ -1,9 +1,6 @@
-:root {
+:root:not([data-theme]) {
     --font-size: 12px;
     --spacing: 0.5rem;
-}
-
-[data-theme=dark] {
     --background-color: #1b1b1b;
     --color: hsl(205, 0%, 77%);
     --h1-color: hsl(205, 0%, 94%);
@@ -58,7 +55,72 @@
     --progress-background-color: #3e3e3e;
 }
 
-:global(body) {
-    margin: 10;
-    background-color: red;
+body {
+    padding: 10px;
+}
+
+nav {
+    height: 15px;
+}
+
+.grid-horizontal {
+    display: flex;
+    justify-content: start;
+    align-content: center;
+    align-items: center;
+}
+
+td {
+    font-size: 12px;
+}
+
+select {
+    display: block;
+    margin: auto;
+}
+
+button {
+    margin-top: 0.25rem;
+    margin-bottom: 0.25rem;
+}
+
+img {
+    width: 32px;
+    height: 32px;
+}
+
+.message-text {
+    height: 100%;
+    text-align: center;
+    margin: 5px;
+}
+
+.centered-text {
+    text-align: center;
+}
+
+.flex-container {
+    display: grid;
+    grid-template-columns: 125px 175px 125px 150px;
+}
+
+a,
+[role='link'] {
+    --color: var(--color);
+}
+
+a:is([aria-current], :hover, :active, :focus),
+[role='link']:is([aria-current], :hover, :active, :focus) {
+    --color: var(--color);
+    --background-color: var(--secondary-focus);
+}
+
+a:focus,
+[role='link']:focus {
+    --color: var(--color);
+    --background-color: var(--secondary-focus);
+}
+
+details summary:focus:not([role='button']) {
+    color: var(--color);
 }
