@@ -87,9 +87,7 @@ fn app() -> Element {
         spawn({
             async move {
                 if let Some((new_thumbnails, new_settings)) =
-                    tokio::task::spawn_blocking(move || pick_files())
-                        .await
-                        .unwrap()
+                    tokio::task::spawn_blocking(pick_files).await.unwrap()
                 {
                     app.with_mut(|a| {
                         a.png_thumbnails.extend(new_thumbnails);
@@ -147,9 +145,12 @@ fn app() -> Element {
                             "File"
                         }
                         ul { role: "listbox",
-                            li { a { onclick: add_files, "Add Files..." } }
                             li {
-                                a { onclick: move |_| {
+                                a { onclick: add_files, "Add Files..." }
+                            }
+                            li {
+                                a {
+                                    onclick: move |_| {
                                         app.with_mut(|a| a.clear_files());
                                         is_file_open.set(false);
                                     },
@@ -171,7 +172,8 @@ fn app() -> Element {
                         }
                         ul { role: "listbox",
                             li {
-                                a { onclick: move |_| {
+                                a {
+                                    onclick: move |_| {
                                         optimize_nutexb_files();
                                         is_batch_open.set(false);
                                     },
@@ -193,11 +195,12 @@ fn app() -> Element {
                         }
                         ul { role: "listbox",
                             li {
-                                a { onclick: move |_| {
+                                a {
+                                    onclick: move |_| {
                                         is_help_open.set(false);
-                                        if let Err(_) = open::that(
+                                        let _ = open::that(
                                             "https://github.com/ScanMountGoat/ultimate_tex/wiki",
-                                        ) {}
+                                        );
                                     },
                                     "Wiki"
                                 }
@@ -215,7 +218,7 @@ fn app() -> Element {
                 checked: "{save_in_same_folder}",
                 onchange: move |e| {
                     app.with_mut(|a| a.settings.save_in_same_folder = e.value().parse().unwrap());
-                }
+                },
             }
             "Save to original folder"
         }
@@ -240,7 +243,12 @@ fn app() -> Element {
             }
         }
         div { class: "grid-horizontal",
-            button { style: "width: 150px;", disabled: disable_export, onclick: export_files, "Export" }
+            button {
+                style: "width: 150px;",
+                disabled: disable_export,
+                onclick: export_files,
+                "Export"
+            }
             for message in messages.read().iter() {
                 div { class: "message-text", "{message}" }
             }
@@ -250,7 +258,9 @@ fn app() -> Element {
         // TODO: select appropriate option by default.
         div { class: "flex-container",
             fieldset {
-                legend { strong { "Output Type" } }
+                legend {
+                    strong { "Output Type" }
+                }
                 for option in preset_file_types {
                     label { r#for: "outputType{option}",
                         input {
@@ -262,7 +272,7 @@ fn app() -> Element {
                                 app.with_mut(|a| {
                                     a.settings.overrides.output_file_type = Some(e.value().parse().unwrap());
                                 });
-                            }
+                            },
                         }
                         "{option}"
                     }
@@ -275,7 +285,7 @@ fn app() -> Element {
                         value: "",
                         oninput: move |_| {
                             app.with_mut(|a| a.settings.overrides.output_file_type = None);
-                        }
+                        },
                     }
                     "Custom..."
                 }
@@ -283,7 +293,9 @@ fn app() -> Element {
 
             if show_compressed_options {
                 fieldset {
-                    legend { strong { "Output Format" } }
+                    legend {
+                        strong { "Output Format" }
+                    }
                     for (option , option_name) in preset_format_types {
                         label { r#for: "outputFormat{option}",
                             input {
@@ -295,7 +307,7 @@ fn app() -> Element {
                                     app.with_mut(|a| {
                                         a.settings.overrides.output_format = Some(e.value().parse().unwrap());
                                     });
-                                }
+                                },
                             }
                             {option_name}
                         }
@@ -308,13 +320,15 @@ fn app() -> Element {
                             value: "",
                             oninput: move |_| {
                                 app.with_mut(|a| a.settings.overrides.output_format = None);
-                            }
+                            },
                         }
                         "Custom..."
                     }
                 }
                 fieldset {
-                    legend { strong { "Mipmaps" } }
+                    legend {
+                        strong { "Mipmaps" }
+                    }
                     for (option , option_name) in preset_mipmap_types {
                         label { r#for: "mipmaps{option}",
                             input {
@@ -326,7 +340,7 @@ fn app() -> Element {
                                     app.with_mut(|a| {
                                         a.settings.overrides.mipmaps = Some(e.value().parse().unwrap());
                                     });
-                                }
+                                },
                             }
                             {option_name}
                         }
@@ -339,13 +353,15 @@ fn app() -> Element {
                             value: "",
                             oninput: move |_| {
                                 app.with_mut(|a| a.settings.overrides.mipmaps = None);
-                            }
+                            },
                         }
                         "Custom..."
                     }
                 }
                 fieldset {
-                    legend { strong { "Compression" } }
+                    legend {
+                        strong { "Compression" }
+                    }
                     for option in Quality::iter() {
                         label { r#for: "compression{option}",
                             input {
@@ -357,7 +373,7 @@ fn app() -> Element {
                                     app.with_mut(|a| {
                                         a.settings.overrides.output_quality = Some(e.value().parse().unwrap());
                                     });
-                                }
+                                },
                             }
                             "{option}"
                         }
@@ -370,7 +386,7 @@ fn app() -> Element {
                             value: "",
                             oninput: move |_| {
                                 app.with_mut(|a| a.settings.overrides.output_quality = None);
-                            }
+                            },
                         }
                         "Custom..."
                     }
@@ -389,97 +405,116 @@ fn app() -> Element {
             table { role: "grid",
                 thead {
                     tr {
-                        th { scope: "col", strong { "Image" } }
-                        th { scope: "col", strong { "Name" } }
-                        th { scope: "col", strong { "Format" } }
-                        th { scope: "col", strong { "Size" } }
-                        th { scope: "col", strong { "Output Type" } }
-                        th { scope: "col", strong { "Output Format" } }
-                        th { scope: "col", strong { "Compression" } }
-                        th { scope: "col", strong { "Mipmaps" } }
+                        th { scope: "col",
+                            strong { "Image" }
+                        }
+                        th { scope: "col",
+                            strong { "Name" }
+                        }
+                        th { scope: "col",
+                            strong { "Format" }
+                        }
+                        th { scope: "col",
+                            strong { "Size" }
+                        }
+                        th { scope: "col",
+                            strong { "Output Type" }
+                        }
+                        th { scope: "col",
+                            strong { "Output Format" }
+                        }
+                        th { scope: "col",
+                            strong { "Compression" }
+                        }
+                        th { scope: "col",
+                            strong { "Mipmaps" }
+                        }
                         th {}
                     }
                 }
                 tbody {
                     for (i , item) in app.read().settings.file_settings.iter().enumerate() {
                         tr { key: "{item.name}",
-                            td { img { src: "{app.read().png_thumbnails[i]}" } }
+                            td {
+                                img { src: "{app.read().png_thumbnails[i]}" }
+                            }
                             td { "{item.name}" }
                             td { "{item.format}" }
                             td { "{item.dimensions.0}x{item.dimensions.1}x{item.dimensions.2}" }
                             td {
                                 match app.with(|a| a.settings.overrides.output_file_type) {
-                                    Some(ty) => rsx! { "{ty}" },
-                                    None => rsx!{
+                                    Some(ty) => rsx! {
+                                    "{ty}"
+                                    },
+                                    None => rsx! {
                                         select {
                                             onchange: move |e| {
-                                                app.with_mut(|a| a.settings.file_settings[i].output_file_type = e.value().parse().unwrap());
+                                                app.with_mut(|a| {
+                                                    a.settings.file_settings[i].output_file_type = e.value().parse().unwrap();
+                                                });
                                             },
                                             for variant in ImageFileType::iter() {
-                                                option {
-                                                    selected: item.output_file_type == variant,
-                                                    value: "{variant}",
-                                                    "{variant}"
-                                                }
+                                                option { selected: item.output_file_type == variant, value: "{variant}", "{variant}" }
                                             }
                                         }
-                                    }
+                                    },
                                 }
                             }
                             td {
                                 match app.with(|a| a.settings.overrides.output_format) {
-                                    Some(ty) => rsx! { "{ty}" },
-                                    None => rsx!{
+                                    Some(ty) => rsx! {
+                                    "{ty}"
+                                    },
+                                    None => rsx! {
                                         select {
                                             onchange: move |e| {
-                                                app.with_mut(|a| a.settings.file_settings[i].output_format = e.value().parse().unwrap());
+                                                app.with_mut(|a| {
+                                                    a.settings.file_settings[i].output_format = e.value().parse().unwrap();
+                                                });
                                             },
                                             for variant in ImageFormat::iter() {
-                                                option {
-                                                    selected: item.output_format == variant,
-                                                    value: "{variant}",
-                                                    "{variant}"
-                                                }
+                                                option { selected: item.output_format == variant, value: "{variant}", "{variant}" }
                                             }
                                         }
-                                    }
+                                    },
                                 }
                             }
                             td {
                                 match app.with(|a| a.settings.overrides.output_quality) {
-                                    Some(ty) => rsx! { "{ty}" },
-                                    None => rsx!{
+                                    Some(ty) => rsx! {
+                                    "{ty}"
+                                    },
+                                    None => rsx! {
                                         select {
                                             onchange: move |e| {
-                                                app.with_mut(|a| a.settings.file_settings[i].output_quality = e.value().parse().unwrap());
+                                                app.with_mut(|a| {
+                                                    a.settings.file_settings[i].output_quality = e.value().parse().unwrap();
+                                                });
                                             },
                                             for variant in Quality::iter() {
-                                                option {
-                                                    selected: item.output_quality == variant,
-                                                    value: "{variant}",
-                                                    "{variant}"
-                                                }
+                                                option { selected: item.output_quality == variant, value: "{variant}", "{variant}" }
                                             }
                                         }
-                                    }
+                                    },
                                 }
                             }
                             td {
                                 match app.with(|a| a.settings.overrides.mipmaps) {
-                                    Some(ty) => rsx! { "{ty}" },
-                                    None => rsx!{
+                                    Some(ty) => rsx! {
+                                    "{ty}"
+                                    },
+                                    None => rsx! {
                                         select {
                                             onchange: move |e| {
-                                                app.with_mut(|a| a.settings.file_settings[i].output_mipmaps = e.value().parse().unwrap());
+                                                app.with_mut(|a| {
+                                                    a.settings.file_settings[i].output_mipmaps = e.value().parse().unwrap();
+                                                });
                                             },
                                             for variant in Mipmaps::iter() {
-                                                option {
-                                                    selected: item.output_mipmaps == variant,
-                                                    value: "{variant}", "{variant}"
-                                                }
+                                                option { selected: item.output_mipmaps == variant, value: "{variant}", "{variant}" }
                                             }
                                         }
-                                    }
+                                    },
                                 }
                             }
                             td {

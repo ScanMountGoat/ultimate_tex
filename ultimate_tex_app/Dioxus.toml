@@ -54,6 +54,7 @@ icon = [
 ]
 
 [bundle.macos]
-
+files = {}
+hardened_runtime = false
 # adhoc signing
 signing_identity = "-"

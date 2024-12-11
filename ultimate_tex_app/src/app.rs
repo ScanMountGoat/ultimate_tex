@@ -225,10 +225,8 @@ pub fn optimize_nutexb_files() {
         {
             if let Ok(mut nutexb) = NutexbFile::read_from_file(entry.path()) {
                 nutexb.optimize_size();
-                // TODO: Avoid unwrap.
-                if let Err(_) = nutexb.write_to_file(entry.path()) {
-                    // TODO: log errors
-                }
+                // TODO: log errors
+                let _ = nutexb.write_to_file(entry.path());
             }
         }
     }
