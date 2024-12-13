@@ -345,17 +345,6 @@ checksum = "c9934c2b68e46448d814db20e34a840ef9b4e7b3b7c8b1da91161481230f6350"
 
 [[package]]
 name = "binrw"
-version = "0.11.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ab81d22cbd2d745852348b2138f3db2103afa8ce043117a374581926a523e267"
-dependencies = [
- "array-init",
- "binrw_derive 0.11.2",
- "bytemuck",
-]
-
-[[package]]
-name = "binrw"
 version = "0.13.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "173901312e9850391d4d7c1318c4e099fdc037d61870fca427429830efdb4e5f"
@@ -366,10 +355,21 @@ dependencies = [
 ]
 
 [[package]]
-name = "binrw_derive"
-version = "0.11.2"
+name = "binrw"
+version = "0.14.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d6b019a3efebe7f453612083202887b6f1ace59e20d010672e336eea4ed5be97"
+checksum = "7d4bca59c20d6f40c2cc0802afbe1e788b89096f61bdf7aeea6bf00f10c2909b"
+dependencies = [
+ "array-init",
+ "binrw_derive 0.14.1",
+ "bytemuck",
+]
+
+[[package]]
+name = "binrw_derive"
+version = "0.13.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "cb515fdd6f8d3a357c8e19b8ec59ef53880807864329b1cb1cba5c53bf76557e"
 dependencies = [
  "either",
  "owo-colors",
@@ -380,9 +380,9 @@ dependencies = [
 
 [[package]]
 name = "binrw_derive"
-version = "0.13.3"
+version = "0.14.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "cb515fdd6f8d3a357c8e19b8ec59ef53880807864329b1cb1cba5c53bf76557e"
+checksum = "d8ba42866ce5bced2645bfa15e97eef2c62d2bdb530510538de8dd3d04efff3c"
 dependencies = [
  "either",
  "owo-colors",
@@ -458,20 +458,20 @@ dependencies = [
 [[package]]
 name = "bntx"
 version = "0.1.0"
-source = "git+https://github.com/ScanMountGoat/bntx?rev=73fe278#73fe278fdbad69a0358e8bf65a0555f06fb8ac1b"
+source = "git+https://github.com/ScanMountGoat/bntx?rev=9e1a710#9e1a71041b39f76992cd01497a059f54ac57477f"
 dependencies = [
- "binrw 0.11.2",
- "ddsfile",
- "image 0.24.9",
- "tegra_swizzle",
+ "binrw 0.14.1",
+ "image_dds",
+ "tegra_swizzle 0.4.0",
  "thiserror",
+ "xc3_write",
 ]
 
 [[package]]
 name = "bstr"
-version = "1.11.0"
+version = "1.11.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1a68f1f47cdf0ec8ee4b941b2eee2a80cb796db73118c0dd09ac63fbe405be22"
+checksum = "786a307d683a5bf92e6fd5fd69a7eb613751668d1d8d67d802846dfe367c62c8"
 dependencies = [
  "memchr",
  "serde",
@@ -554,9 +554,9 @@ dependencies = [
 
 [[package]]
 name = "cc"
-version = "1.2.3"
+version = "1.2.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "27f657647bcff5394bf56c7317665bbf790a137a50eaaa5c6bfbb9e27a518f2d"
+checksum = "9157bbaa6b165880c27a4293a474c91cdcf265cc68cc829bf10be0964a391caf"
 dependencies = [
  "jobserver",
  "libc",
@@ -2587,24 +2587,6 @@ dependencies = [
 
 [[package]]
 name = "image"
-version = "0.24.9"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5690139d2f55868e080017335e4b94cb7414274c74f1669c84fb5feba2c9f69d"
-dependencies = [
- "bytemuck",
- "byteorder",
- "color_quant",
- "exr",
- "gif",
- "jpeg-decoder",
- "num-traits",
- "png",
- "qoi",
- "tiff",
-]
-
-[[package]]
-name = "image"
 version = "0.25.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "cd6f44aed642f18953a158afeb30206f4d50da59fbc66ecb53c66488de73563b"
@@ -2646,7 +2628,7 @@ dependencies = [
  "bytemuck",
  "ddsfile",
  "half",
- "image 0.25.5",
+ "image",
  "intel_tex_2",
  "serde",
  "strum 0.26.3",
@@ -2838,9 +2820,6 @@ name = "jpeg-decoder"
 version = "0.3.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "f5d4a7da358eff58addd2877a45865158f0d78c911d43a5784ceb7bbf52833b0"
-dependencies = [
- "rayon",
-]
 
 [[package]]
 name = "js-sys"
@@ -3350,7 +3329,7 @@ source = "git+https://github.com/jam1garner/nutexb#e08257394a91b96b18cbba39278c6
 dependencies = [
  "binrw 0.13.3",
  "ddsfile",
- "tegra_swizzle",
+ "tegra_swizzle 0.3.2",
 ]
 
 [[package]]
@@ -4080,9 +4059,9 @@ dependencies = [
 
 [[package]]
 name = "redox_syscall"
-version = "0.5.7"
+version = "0.5.8"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9b6dfecf2c74bce2466cabf93f6664d6998a69eb21e39f4207930065b27b771f"
+checksum = "03a862b389f93e68874fbf580b9de08dd02facb9a788ebadaf4a3fd33cf58834"
 dependencies = [
  "bitflags 2.6.0",
 ]
@@ -4300,9 +4279,9 @@ dependencies = [
 
 [[package]]
 name = "semver"
-version = "1.0.23"
+version = "1.0.24"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "61697e0a1c7e512e84a621326239844a24d8207b4669b41bc18b32ea5cbf988b"
+checksum = "3cb6eb87a131f756572d7fb904f6e7b68633f09cca868c5df1c4b8d1a694bbba"
 
 [[package]]
 name = "send_wrapper"
@@ -4836,6 +4815,12 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "12afa2e808fe8dba9c3257273cb42dfd067ff2089809e064b78cd91e3cfd8e78"
 
 [[package]]
+name = "tegra_swizzle"
+version = "0.4.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "a99e82f512a8f5baabe0d9e5ba86b4e827840635e7628a5216a34e03b06a6f01"
+
+[[package]]
 name = "tempfile"
 version = "3.14.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -5128,7 +5113,7 @@ name = "ultimate_tex"
 version = "0.2.3"
 dependencies = [
  "bntx",
- "image 0.25.5",
+ "image",
  "image_dds",
  "nutexb",
  "strum 0.24.1",
@@ -5915,6 +5900,26 @@ dependencies = [
 ]
 
 [[package]]
+name = "xc3_write"
+version = "0.15.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "828267ec30a59273c91b9b4b9637a56b3eafbd72d76fc44a05585eb2fb446201"
+dependencies = [
+ "xc3_write_derive",
+]
+
+[[package]]
+name = "xc3_write_derive"
+version = "0.15.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "2b4f6231628625350122ed6a967b1b3b5aed451588021b36d395474d1947af81"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn 2.0.90",
+]
+
+[[package]]
 name = "xdg-home"
 version = "1.3.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -6094,9 +6099,9 @@ dependencies = [
 
 [[package]]
 name = "zune-jpeg"
-version = "0.4.13"
+version = "0.4.14"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "16099418600b4d8f028622f73ff6e3deaabdff330fb9a2a131dea781ee8b0768"
+checksum = "99a5bab8d7dedf81405c4bb1f2b83ea057643d9cb28778cea9eecddeedd2e028"
 dependencies = [
  "zune-core",
 ]

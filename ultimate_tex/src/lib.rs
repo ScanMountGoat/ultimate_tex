@@ -1,6 +1,6 @@
 use std::{error::Error, path::Path};
 
-pub use bntx::BntxFile;
+pub use bntx::Bntx;
 pub use nutexb::NutexbFile;
 
 use image_dds::{dds_image_format, ddsfile::Dds, image::RgbaImage, ImageFormat, Surface};
@@ -9,7 +9,7 @@ pub enum ImageFile {
     Image(RgbaImage),
     Dds(Dds),
     Nutexb(NutexbFile),
-    Bntx(BntxFile),
+    Bntx(Bntx),
 }
 
 impl ImageFile {
@@ -23,7 +23,7 @@ impl ImageFile {
             .as_str()
         {
             "nutexb" => Ok(ImageFile::Nutexb(NutexbFile::read_from_file(input)?)),
-            "bntx" => Ok(ImageFile::Bntx(BntxFile::from_file(input)?)),
+            "bntx" => Ok(ImageFile::Bntx(Bntx::from_file(input)?)),
             "dds" => {
                 let mut reader = std::io::BufReader::new(std::fs::File::open(input)?);
                 Ok(ImageFile::Dds(Dds::read(&mut reader)?))
@@ -68,7 +68,7 @@ impl ImageFile {
             }
             ImageFile::Bntx(bntx) => {
                 // Use DDS as an intermediate format to handle swizzling.
-                let dds = bntx::dds::create_dds(bntx)?;
+                let dds = bntx.to_dds()?;
                 image_dds::image_from_dds(&dds, 0).map_err(Into::into)
             }
         }
@@ -112,7 +112,7 @@ impl ImageFile {
                 new_nutexb.write_to_file(output)?;
             }
             ImageFile::Bntx(bntx) => {
-                let dds = bntx::dds::create_dds(bntx)?;
+                let dds = bntx.to_dds()?;
                 let new_dds = encode_dds(&dds, image_format, quality, mipmaps)?;
                 let nutexb = NutexbFile::from_dds(&new_dds, name)?;
                 nutexb.write_to_file(output)?;
@@ -139,25 +139,25 @@ impl ImageFile {
         match self {
             ImageFile::Image(image) => {
                 let dds = image_dds::dds_from_image(image, image_format, quality, mipmaps)?;
-                let bntx = bntx::dds::create_bntx(&name, &dds)?;
-                bntx.write_to_file(output)?;
+                let bntx = Bntx::from_dds(&dds, &name)?;
+                bntx.save(output)?;
             }
             ImageFile::Dds(dds) => {
                 let new_dds = encode_dds(dds, image_format, quality, mipmaps)?;
-                let bntx = bntx::dds::create_bntx(&name, &new_dds)?;
-                bntx.write_to_file(output)?;
+                let bntx = Bntx::from_dds(&new_dds, &name)?;
+                bntx.save(output)?;
             }
             ImageFile::Nutexb(nutexb) => {
                 let dds = nutexb.to_dds()?;
                 let new_dds = encode_dds(&dds, image_format, quality, mipmaps)?;
-                let bntx = bntx::dds::create_bntx(&name, &new_dds)?;
-                bntx.write_to_file(output)?;
+                let bntx = Bntx::from_dds(&new_dds, &name)?;
+                bntx.save(output)?;
             }
             ImageFile::Bntx(bntx) => {
-                let dds = bntx::dds::create_dds(bntx)?;
+                let dds = bntx.to_dds()?;
                 let new_dds = encode_dds(&dds, image_format, quality, mipmaps)?;
-                let new_bntx = bntx::dds::create_bntx(&name, &new_dds)?;
-                new_bntx.write_to_file(output)?;
+                let bntx = Bntx::from_dds(&new_dds, &name)?;
+                bntx.save(output)?;
             }
         }
         Ok(())
@@ -185,7 +185,7 @@ impl ImageFile {
                 write_dds(output, &new_dds)?;
             }
             ImageFile::Bntx(bntx) => {
-                let dds = bntx::dds::create_dds(bntx)?;
+                let dds = bntx.to_dds()?;
                 let new_dds = encode_dds(&dds, image_format, quality, mipmaps)?;
                 write_dds(output, &new_dds)?;
             }
@@ -195,28 +195,8 @@ impl ImageFile {
     }
 }
 
-fn bntx_image_format(bntx: &BntxFile) -> ImageFormat {
-    match bntx.image_format() {
-        bntx::SurfaceFormat::R8Unorm => ImageFormat::R8Unorm,
-        bntx::SurfaceFormat::R8G8B8A8Unorm => ImageFormat::Rgba8Unorm,
-        bntx::SurfaceFormat::R8G8B8A8Srgb => ImageFormat::Rgba8UnormSrgb,
-        bntx::SurfaceFormat::B8G8R8A8Unorm => ImageFormat::Bgra8Unorm,
-        bntx::SurfaceFormat::B8G8R8A8Srgb => ImageFormat::Bgra8UnormSrgb,
-        bntx::SurfaceFormat::BC1Unorm => ImageFormat::BC1RgbaUnorm,
-        bntx::SurfaceFormat::BC1Srgb => ImageFormat::BC1RgbaUnormSrgb,
-        bntx::SurfaceFormat::BC2Unorm => ImageFormat::BC2RgbaUnorm,
-        bntx::SurfaceFormat::BC2Srgb => ImageFormat::BC2RgbaUnormSrgb,
-        bntx::SurfaceFormat::BC3Unorm => ImageFormat::BC3RgbaUnorm,
-        bntx::SurfaceFormat::BC3Srgb => ImageFormat::BC3RgbaUnormSrgb,
-        bntx::SurfaceFormat::BC4Unorm => ImageFormat::BC4RUnorm,
-        bntx::SurfaceFormat::BC4Snorm => ImageFormat::BC4RSnorm,
-        bntx::SurfaceFormat::BC5Unorm => ImageFormat::BC5RgUnorm,
-        bntx::SurfaceFormat::BC5Snorm => ImageFormat::BC5RgSnorm,
-        bntx::SurfaceFormat::BC6Ufloat => ImageFormat::BC6hRgbUfloat,
-        bntx::SurfaceFormat::BC6Sfloat => ImageFormat::BC6hRgbSfloat,
-        bntx::SurfaceFormat::BC7Unorm => ImageFormat::BC7RgbaUnorm,
-        bntx::SurfaceFormat::BC7Srgb => ImageFormat::BC7RgbaUnormSrgb,
-    }
+fn bntx_image_format(bntx: &Bntx) -> ImageFormat {
+    bntx.image_format().try_into().unwrap()
 }
 
 fn nutexb_image_format(nutexb: &NutexbFile) -> ImageFormat {
