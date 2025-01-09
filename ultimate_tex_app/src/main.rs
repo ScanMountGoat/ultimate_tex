@@ -265,7 +265,7 @@ fn app() -> Element {
                             id: "outputType{option}",
                             name: "outputType",
                             value: "{option}",
-                            checked: app.with(|a| a.settings.overrides.output_file_type == Some(option)),
+                            checked: app.read().settings.overrides.output_file_type == Some(option),
                             oninput: move |e| {
                                 app.with_mut(|a| {
                                     a.settings.overrides.output_file_type = Some(e.value().parse().unwrap());
@@ -281,7 +281,7 @@ fn app() -> Element {
                         id: "outputTypeNull",
                         name: "outputType",
                         value: "",
-                        checked: app.with(|a| a.settings.overrides.output_file_type.is_none()),
+                        checked: app.read().settings.overrides.output_file_type.is_none(),
                         oninput: move |_| {
                             app.with_mut(|a| a.settings.overrides.output_file_type = None);
                         },
@@ -302,7 +302,7 @@ fn app() -> Element {
                                 id: "outputFormat{option}",
                                 name: "outputFormat",
                                 value: "{option}",
-                                checked: app.with(|a| a.settings.overrides.output_format == Some(option)),
+                                checked: app.read().settings.overrides.output_format == Some(option),
                                 oninput: move |e| {
                                     app.with_mut(|a| {
                                         a.settings.overrides.output_format = Some(e.value().parse().unwrap());
@@ -318,7 +318,7 @@ fn app() -> Element {
                             id: "outputFormatNull",
                             name: "outputFormat",
                             value: "",
-                            checked: app.with(|a| a.settings.overrides.output_format.is_none()),
+                            checked: app.read().settings.overrides.output_format.is_none(),
                             oninput: move |_| {
                                 app.with_mut(|a| a.settings.overrides.output_format = None);
                             },
@@ -337,7 +337,7 @@ fn app() -> Element {
                                 id: "mipmaps{option}",
                                 name: "mipmaps",
                                 value: "{option}",
-                                checked: app.with(|a| a.settings.overrides.mipmaps == Some(option)),
+                                checked: app.read().settings.overrides.mipmaps == Some(option),
                                 oninput: move |e| {
                                     app.with_mut(|a| {
                                         a.settings.overrides.mipmaps = Some(e.value().parse().unwrap());
@@ -353,7 +353,7 @@ fn app() -> Element {
                             id: "mipmapsNull",
                             name: "mipmaps",
                             value: "",
-                            checked: app.with(|a| a.settings.overrides.mipmaps.is_none()),
+                            checked: app.read().settings.overrides.mipmaps.is_none(),
                             oninput: move |_| {
                                 app.with_mut(|a| a.settings.overrides.mipmaps = None);
                             },
@@ -372,7 +372,7 @@ fn app() -> Element {
                                 id: "compression{option}",
                                 name: "compression",
                                 value: "{option}",
-                                checked: app.with(|a| a.settings.overrides.output_quality == Some(option)),
+                                checked: app.read().settings.overrides.output_quality == Some(option),
                                 oninput: move |e| {
                                     app.with_mut(|a| {
                                         a.settings.overrides.output_quality = Some(e.value().parse().unwrap());
@@ -388,7 +388,7 @@ fn app() -> Element {
                             id: "compressionNull",
                             name: "compression",
                             value: "",
-                            checked: app.with(|a| a.settings.overrides.output_quality.is_none()),
+                            checked: app.read().settings.overrides.output_quality.is_none(),
                             oninput: move |_| {
                                 app.with_mut(|a| a.settings.overrides.output_quality = None);
                             },
@@ -400,13 +400,6 @@ fn app() -> Element {
         }
 
         figure {
-            // TODO: make this fill the remaining space.
-            // TODO: Fix this on windows.
-            ondrop: move |e| async move {
-                if let Some(file_engine) = e.files() {
-                    add_dropped_files(file_engine).await;
-                }
-            },
             table { role: "grid",
                 thead {
                     tr {
@@ -447,7 +440,7 @@ fn app() -> Element {
                             td { "{item.format}" }
                             td { "{item.dimensions.0}x{item.dimensions.1}x{item.dimensions.2}" }
                             td {
-                                match app.with(|a| a.settings.overrides.output_file_type) {
+                                match app.read().settings.overrides.output_file_type {
                                     Some(ty) => rsx! {
                                     "{ty}"
                                     },
@@ -466,7 +459,7 @@ fn app() -> Element {
                                 }
                             }
                             td {
-                                match app.with(|a| a.settings.overrides.output_format) {
+                                match app.read().settings.overrides.output_format {
                                     Some(ty) => rsx! {
                                     "{ty}"
                                     },
@@ -485,7 +478,7 @@ fn app() -> Element {
                                 }
                             }
                             td {
-                                match app.with(|a| a.settings.overrides.output_quality) {
+                                match app.read().settings.overrides.output_quality {
                                     Some(ty) => rsx! {
                                     "{ty}"
                                     },
@@ -504,7 +497,7 @@ fn app() -> Element {
                                 }
                             }
                             td {
-                                match app.with(|a| a.settings.overrides.mipmaps) {
+                                match app.read().settings.overrides.mipmaps {
                                     Some(ty) => rsx! {
                                     "{ty}"
                                     },
@@ -535,6 +528,17 @@ fn app() -> Element {
                     }
                 }
             }
+        }
+        div {
+            // style: "visibility:hidden; opacity:0",
+            class: "drop-zone",
+            // TODO: make this fill the remaining space.
+            // TODO: Fix this on windows.
+            ondrop: move |e| async move {
+                if let Some(file_engine) = e.files() {
+                    add_dropped_files(file_engine).await;
+                }
+            },
         }
         if app.read().settings.file_settings.is_empty() {
             div { class: "centered-text",

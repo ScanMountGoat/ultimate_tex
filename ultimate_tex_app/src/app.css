@@ -124,3 +124,8 @@ a:focus,
 details summary:focus:not([role='button']) {
     color: var(--color);
 }
+
+drop-zone {
+    width: 100%;
+    height: 100px;
+}
