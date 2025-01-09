@@ -1,4 +1,3 @@
-#![allow(non_snake_case)]
 // Prevents additional console window on Windows in release.
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
@@ -105,10 +104,30 @@ fn app() -> Element {
             .await
             .unwrap();
         app.with_mut(|a| {
+            // TODO: Handle duplicate image paths.
             a.png_thumbnails.extend(new_thumbnails);
             a.settings.file_settings.extend(new_settings);
         });
     };
+
+    use_effect(|| {
+        document::eval(
+            r#"
+                window.addEventListener("dragover", function(e)
+                {
+                    document.getElementById("drop-zone").style.visibility = "";
+                    document.getElementById("drop-zone").style.pointerEvents = "all";
+
+                });
+
+                window.addEventListener("dragleave", function(e)
+                {
+                    document.getElementById("drop-zone").style.visibility = "hidden";
+                    document.getElementById("drop-zone").style.pointerEvents = "none";
+                });
+            "#,
+        );
+    });
 
     let export_files = move |_| {
         spawn({
@@ -529,21 +548,19 @@ fn app() -> Element {
                 }
             }
         }
+        if app.read().settings.file_settings.is_empty() {
+            div { class: "centered-text",
+                "Drag and drop image files onto the window or add files using File > Add Files..."
+            }
+        }
         div {
-            // style: "visibility:hidden; opacity:0",
+            id: "drop-zone",
             class: "drop-zone",
-            // TODO: make this fill the remaining space.
-            // TODO: Fix this on windows.
             ondrop: move |e| async move {
                 if let Some(file_engine) = e.files() {
                     add_dropped_files(file_engine).await;
                 }
             },
-        }
-        if app.read().settings.file_settings.is_empty() {
-            div { class: "centered-text",
-                "Drag and drop image files onto the window or add files using File > Add Files..."
-            }
         }
     }
 }
