@@ -198,9 +198,7 @@ fn app() -> Element {
                                 a {
                                     onclick: move |_| {
                                         is_help_open.set(false);
-                                        let _ = open::that(
-                                            "https://github.com/ScanMountGoat/ultimate_tex/wiki",
-                                        );
+                                        let _ = open::that("https://github.com/ScanMountGoat/ultimate_tex/wiki");
                                     },
                                     "Wiki"
                                 }
@@ -255,7 +253,6 @@ fn app() -> Element {
         }
         hr {}
 
-        // TODO: select appropriate option by default.
         div { class: "flex-container",
             fieldset {
                 legend {
@@ -268,6 +265,7 @@ fn app() -> Element {
                             id: "outputType{option}",
                             name: "outputType",
                             value: "{option}",
+                            checked: app.with(|a| a.settings.overrides.output_file_type == Some(option)),
                             oninput: move |e| {
                                 app.with_mut(|a| {
                                     a.settings.overrides.output_file_type = Some(e.value().parse().unwrap());
@@ -283,6 +281,7 @@ fn app() -> Element {
                         id: "outputTypeNull",
                         name: "outputType",
                         value: "",
+                        checked: app.with(|a| a.settings.overrides.output_file_type.is_none()),
                         oninput: move |_| {
                             app.with_mut(|a| a.settings.overrides.output_file_type = None);
                         },
@@ -303,6 +302,7 @@ fn app() -> Element {
                                 id: "outputFormat{option}",
                                 name: "outputFormat",
                                 value: "{option}",
+                                checked: app.with(|a| a.settings.overrides.output_format == Some(option)),
                                 oninput: move |e| {
                                     app.with_mut(|a| {
                                         a.settings.overrides.output_format = Some(e.value().parse().unwrap());
@@ -318,6 +318,7 @@ fn app() -> Element {
                             id: "outputFormatNull",
                             name: "outputFormat",
                             value: "",
+                            checked: app.with(|a| a.settings.overrides.output_format.is_none()),
                             oninput: move |_| {
                                 app.with_mut(|a| a.settings.overrides.output_format = None);
                             },
@@ -336,6 +337,7 @@ fn app() -> Element {
                                 id: "mipmaps{option}",
                                 name: "mipmaps",
                                 value: "{option}",
+                                checked: app.with(|a| a.settings.overrides.mipmaps == Some(option)),
                                 oninput: move |e| {
                                     app.with_mut(|a| {
                                         a.settings.overrides.mipmaps = Some(e.value().parse().unwrap());
@@ -351,6 +353,7 @@ fn app() -> Element {
                             id: "mipmapsNull",
                             name: "mipmaps",
                             value: "",
+                            checked: app.with(|a| a.settings.overrides.mipmaps.is_none()),
                             oninput: move |_| {
                                 app.with_mut(|a| a.settings.overrides.mipmaps = None);
                             },
@@ -369,6 +372,7 @@ fn app() -> Element {
                                 id: "compression{option}",
                                 name: "compression",
                                 value: "{option}",
+                                checked: app.with(|a| a.settings.overrides.output_quality == Some(option)),
                                 oninput: move |e| {
                                     app.with_mut(|a| {
                                         a.settings.overrides.output_quality = Some(e.value().parse().unwrap());
@@ -384,6 +388,7 @@ fn app() -> Element {
                             id: "compressionNull",
                             name: "compression",
                             value: "",
+                            checked: app.with(|a| a.settings.overrides.output_quality.is_none()),
                             oninput: move |_| {
                                 app.with_mut(|a| a.settings.overrides.output_quality = None);
                             },
