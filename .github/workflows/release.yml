@@ -88,7 +88,7 @@ jobs:
       run: cargo binstall dioxus-cli --version 0.6.2
     - name: Bundle
       working-directory: ./ultimate_tex_app
-      run: cargo rustc -- -C link-args=-lstdc++
+      run: cargo rustc --release -- -C link-args=-lstdc++
     - name: Create Zip
       run: |
         mv target/release/ultimate_tex_app target/release/ultimate_tex
