@@ -13,22 +13,12 @@ jobs:
     runs-on: windows-latest
     steps:
     - uses: actions/checkout@v3
-    - name: setup node
-      uses: actions/setup-node@v3
-      with:
-        node-version: 16
-    - name: Install Tauri
-      uses: baptiste0928/cargo-install@v2
-      with:
-        crate: tauri-cli
-        version: "=1.5.7"
-        locked: false
-        args: --debug
-    - name: Build
-      run: |
-        cd ultimate_tex_tauri
-        npm install
-        cargo tauri build --bundles none
+    - uses: cargo-bins/cargo-binstall@main
+    - name: Install dioxus-cli
+      run: cargo binstall dioxus-cli --version 0.6.2
+    - name: Bundle
+      working-directory: ./ultimate_tex_app
+      run: dx bundle --release
     - name: Create Zip
       run: Compress-Archive -path target/release/ultimate_tex.exe -destinationPath ultimate_tex_win_x64.zip 
     - name: Upload Zip
@@ -46,60 +36,40 @@ jobs:
 
   build-macos:
     runs-on: macos-latest
+    strategy:
+      matrix:
+        target: [x86_64-apple-darwin]
+        desc: [intel]
+        include:
+          - target: aarch64-apple-darwin
+            desc: apple_silicon
     steps:
     - uses: actions/checkout@v3
-    - name: setup node
-      uses: actions/setup-node@v3
-      with:
-        node-version: 16
     - name: Install Rust Toolchain
       uses: actions-rs/toolchain@v1
       with:
         toolchain: stable
         target: aarch64-apple-darwin
-    - name: Install Tauri
-      uses: baptiste0928/cargo-install@v2
-      with:
-        crate: tauri-cli
-        version: "=1.5.7"
-        locked: false
-        args: --debug
-    - name: Install Packages
-      run: |
-        cd ultimate_tex_tauri
-        npm install
-        cd ..
-    - name: Build
-      run: |
-        cargo tauri build --bundles app --target x86_64-apple-darwin
-        cargo tauri build --bundles app --target aarch64-apple-darwin
-    - name: Sign Binaries
-      run: |
-        codesign -s - target/x86_64-apple-darwin/release/bundle/macos/ultimate_tex.app
-        codesign -s - target/aarch64-apple-darwin/release/bundle/macos/ultimate_tex.app
+    - uses: cargo-bins/cargo-binstall@main
+    - name: Install dioxus-cli
+      run: cargo binstall dioxus-cli --version 0.6.2
+    - name: Bundle
+      working-directory: ./ultimate_tex_app
+      run: dx bundle --release --package-types macos --target ${{matrix.target}}
     - name: Create Zips
       run: |
-        cp -r target/x86_64-apple-darwin/release/bundle/macos/ultimate_tex.app ultimate_tex.app
-        zip -r ultimate_tex_macos_intel.zip ultimate_tex.app
-        cp -r target/aarch64-apple-darwin/release/bundle/macos/ultimate_tex.app ultimate_tex.app
-        zip -r ultimate_tex_macos_apple_silicon.zip ultimate_tex.app
-    - name: Upload Zip Intel
+        cp -r target/dx/ultimate_tex_app/bundle/macos/bundle/macos/UltimateTexApp.app ultimate_tex.app
+        zip -r ultimate_tex_macos_${{matrix.desc}}.zip ultimate_tex.app
+    - name: Upload Zip
       uses: actions/upload-artifact@v3
       with:
-        name: ultimate_tex_macos_intel
-        path: ultimate_tex_macos_intel.zip
-    - name: Upload Zip Apple Silicon
-      uses: actions/upload-artifact@v3
-      with:
-        name: ultimate_tex_macos_apple_silicon
-        path: ultimate_tex_macos_apple_silicon.zip
+        name: ultimate_tex_macos_${{matrix.desc}}
+        path: ultimate_tex_macos_${{matrix.desc}}.zip
     - name: Release
       uses: softprops/action-gh-release@v1
       if: startsWith(github.ref, 'refs/tags/')
       with:
-        files: |
-          ultimate_tex_macos_apple_silicon.zip
-          ultimate_tex_macos_intel.zip
+        files: ultimate_tex_macos_${{matrix.desc}}.zip
       env:
         GITHUB_TOKEN: ${{secrets.GITHUB_TOKEN}}
 
@@ -107,28 +77,16 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v3
-    - name: setup node
-      uses: actions/setup-node@v3
-      with:
-        node-version: 16
     - name: Install Ubuntu Dependencies
       run: |
         sudo apt-get update
-        sudo apt-get install -y libssl-dev libgtk-3-dev libsoup2.4-dev webkit2gtk-4.0 javascriptcoregtk-4.0
-    - name: Install Tauri
-      uses: baptiste0928/cargo-install@v2
-      with:
-        crate: tauri-cli
-        version: "=1.5.7"
-        locked: false
-        args: --debug
-    - name: Install Packages
-      run: |
-        cd ultimate_tex_tauri
-        npm install
-        cd ..
-    - name: Build
-      run: cargo tauri build
+        sudo apt-get install -y libssl-dev libgtk-3-dev libsoup2.4-dev webkit2gtk-4.0
+        - uses: cargo-bins/cargo-binstall@main
+    - name: Install dioxus-cli
+      run: cargo binstall dioxus-cli --version 0.6.2
+    - name: Bundle
+      working-directory: ./ultimate_tex_app
+      run: dx bundle --release --package-types appimage
     - name: Create Zip
       run: zip -j ultimate_tex_linux_x64.zip target/release/ultimate-tex
     - name: Upload Zip
