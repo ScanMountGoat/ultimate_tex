@@ -20,7 +20,9 @@ jobs:
       working-directory: ./ultimate_tex_app
       run: dx bundle --release
     - name: Create Zip
-      run: Compress-Archive -path target/release/ultimate_tex.exe -destinationPath ultimate_tex_win_x64.zip 
+      run: |
+        ren target/dx/ultimate_tex_app/bundle/windows/ultimate_tex_app.exe target/dx/ultimate_tex_app/bundle/windows/ultimate_tex.exe
+        Compress-Archive -path target/dx/ultimate_tex_app/bundle/windows/ultimate_tex_app.exe -destinationPath ultimate_tex_win_x64.zip
     - name: Upload Zip
       uses: actions/upload-artifact@v4
       with:
@@ -86,9 +88,11 @@ jobs:
       run: cargo binstall dioxus-cli --version 0.6.2
     - name: Bundle
       working-directory: ./ultimate_tex_app
-      run: dx bundle --release --package-types appimage
+      run: cargo rustc -- -C link-args=-lstdc++
     - name: Create Zip
-      run: zip -j ultimate_tex_linux_x64.zip target/release/ultimate-tex
+      run: |
+        mv target/release/ultimate_tex_app target/release/ultimate_tex
+        zip -j ultimate_tex_linux_x64.zip target/release/ultimate_tex
     - name: Upload Zip
       uses: actions/upload-artifact@v4
       with:
