@@ -22,7 +22,7 @@ jobs:
     - name: Create Zip
       run: Compress-Archive -path target/release/ultimate_tex.exe -destinationPath ultimate_tex_win_x64.zip 
     - name: Upload Zip
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: ultimate_tex_win_x64
         path: ultimate_tex_win_x64.zip
@@ -61,7 +61,7 @@ jobs:
         cp -r target/dx/ultimate_tex_app/bundle/macos/bundle/macos/UltimateTexApp.app ultimate_tex.app
         zip -r ultimate_tex_macos_${{matrix.desc}}.zip ultimate_tex.app
     - name: Upload Zip
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: ultimate_tex_macos_${{matrix.desc}}
         path: ultimate_tex_macos_${{matrix.desc}}.zip
@@ -90,7 +90,7 @@ jobs:
     - name: Create Zip
       run: zip -j ultimate_tex_linux_x64.zip target/release/ultimate-tex
     - name: Upload Zip
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: ultimate_tex_linux_x64
         path: ultimate_tex_linux_x64.zip
