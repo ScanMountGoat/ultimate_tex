@@ -82,7 +82,7 @@ jobs:
     - name: Install Ubuntu Dependencies
       run: |
         sudo apt-get update
-        sudo apt-get install -y libssl-dev libgtk-3-dev libsoup-3.0-dev webkit2gtk-4.1 javascriptcoregtk-4.1
+        sudo apt-get install -y libssl-dev libgtk-3-dev libsoup-3.0-dev webkit2gtk-4.1 javascriptcoregtk-4.1 libxdo-dev
     - uses: cargo-bins/cargo-binstall@main
     - name: Install dioxus-cli
       run: cargo binstall dioxus-cli --version 0.6.2
