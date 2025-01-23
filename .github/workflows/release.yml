@@ -49,7 +49,7 @@ jobs:
       uses: actions-rs/toolchain@v1
       with:
         toolchain: stable
-        target: aarch64-apple-darwin
+        target: ${{matrix.target}}
     - uses: cargo-bins/cargo-binstall@main
     - name: Install dioxus-cli
       run: cargo binstall dioxus-cli --version 0.6.2
