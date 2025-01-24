@@ -340,12 +340,6 @@ checksum = "72b3254f16251a8381aa12e40e3c4d2f0199f8c6508fbecb9d91f575e0fbb8c6"
 
 [[package]]
 name = "bcdec_rs"
-version = "0.1.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c9934c2b68e46448d814db20e34a840ef9b4e7b3b7c8b1da91161481230f6350"
-
-[[package]]
-name = "bcdec_rs"
 version = "0.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "f09c37bc0e9f0924b7dae9988265ef3c76c88538f41a3b06caf4bed07cee5226"
@@ -468,7 +462,7 @@ version = "0.1.0"
 source = "git+https://github.com/ScanMountGoat/bntx?rev=7d274e1#7d274e15462ef2904866f375832db4d641d1f895"
 dependencies = [
  "binrw 0.14.1",
- "image_dds 0.7.0",
+ "image_dds",
  "tegra_swizzle 0.4.0",
  "thiserror 1.0.69",
  "xc3_write",
@@ -2652,27 +2646,11 @@ dependencies = [
 
 [[package]]
 name = "image_dds"
-version = "0.6.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "84c6d1a2d80bc7dd2928b2a72a46d71bccbb6becf8ce207522b0b92daf0a417f"
-dependencies = [
- "bcdec_rs 0.1.2",
- "bytemuck",
- "ddsfile",
- "half",
- "image",
- "intel_tex_2",
- "strum 0.26.3",
- "thiserror 1.0.69",
-]
-
-[[package]]
-name = "image_dds"
 version = "0.7.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "8e2b9fbc4237464c255c72f468bddaa25b2502c40a34a8fbc0fd9a9addfacc37"
 dependencies = [
- "bcdec_rs 0.2.0",
+ "bcdec_rs",
  "bytemuck",
  "ddsfile",
  "half",
@@ -5213,25 +5191,25 @@ dependencies = [
 
 [[package]]
 name = "ultimate_tex"
-version = "0.2.3"
+version = "0.3.0"
 dependencies = [
  "bntx",
  "image",
- "image_dds 0.7.0",
+ "image_dds",
  "nutexb",
  "strum 0.24.1",
 ]
 
 [[package]]
 name = "ultimate_tex_app"
-version = "0.2.3"
+version = "0.3.0"
 dependencies = [
  "base64 0.21.7",
  "dioxus",
  "dioxus-desktop",
  "directories",
  "globwalk",
- "image_dds 0.7.0",
+ "image_dds",
  "open",
  "rayon",
  "rfd 0.12.1",
@@ -5244,10 +5222,10 @@ dependencies = [
 
 [[package]]
 name = "ultimate_tex_cli"
-version = "0.2.3"
+version = "0.3.0"
 dependencies = [
  "clap",
- "image_dds 0.6.2",
+ "image_dds",
  "ultimate_tex",
 ]
 
