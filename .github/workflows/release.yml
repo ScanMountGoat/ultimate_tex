@@ -13,9 +13,6 @@ jobs:
     runs-on: windows-latest
     steps:
     - uses: actions/checkout@v3
-    - uses: cargo-bins/cargo-binstall@main
-    - name: Install dioxus-cli
-      run: cargo binstall dioxus-cli --version 0.6.2
     - name: Build
       working-directory: ./ultimate_tex_app
       run: cargo build --release
@@ -56,9 +53,10 @@ jobs:
       with:
         toolchain: stable
         target: ${{matrix.target}}
-    - uses: cargo-bins/cargo-binstall@main
     - name: Install dioxus-cli
-      run: cargo binstall dioxus-cli --version 0.6.2
+      run: |
+        url="https://github.com/DioxusLabs/dioxus/releases/download/v0.6.2/dx-${{matrix.target}}-v0.6.2.tar.gz"
+        curl -sSL $url | tar -xz --directory=./ultimate_tex_app
     - name: Bundle
       working-directory: ./ultimate_tex_app
       run: dx bundle --release --package-types macos --target ${{matrix.target}}
