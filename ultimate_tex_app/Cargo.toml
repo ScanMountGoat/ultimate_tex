@@ -10,7 +10,7 @@ dioxus = {version = "0.6.2", features = ["desktop"] }
 serde_json = "1.0"
 serde = { version = "1.0", features = ["derive"] }
 ultimate_tex = { path = "../ultimate_tex" }
-image_dds = { version = "0.6.2", features = ["ddsfile", "image", "serde"] }
+image_dds = { version = "0.7.0", features = ["ddsfile", "image", "serde"] }
 rayon = "1.7.0"
 open = "5.0.0"
 globwalk = "0.8.1"
