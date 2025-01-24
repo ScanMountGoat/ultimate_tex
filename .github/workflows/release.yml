@@ -59,6 +59,9 @@ jobs:
         mkdir dioxus-cli
         curl -sSL $url | tar -xz --directory=./dioxus-cli
         echo `pwd`/dioxus-cli >> $GITHUB_PATH
+    - name: Install OpenSSL 3.0
+      # necessary for dioxus-cli to run
+      run: brew install openssl@3
     - name: Bundle
       working-directory: ./ultimate_tex_app
       run: dx bundle --release --package-types macos --target ${{matrix.target}}
