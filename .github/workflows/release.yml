@@ -25,7 +25,7 @@ jobs:
         .\rcedit.exe target/release/ultimate_tex_app.exe --set-icon ultimate_tex_app/icons/icon.ico
     - name: Create Zip
       run: |
-        ren target/release/ultimate_tex_app.exe target/release/ultimate_tex.exe
+        mv target/release/ultimate_tex_app.exe target/release/ultimate_tex.exe
         Compress-Archive -path target/release/ultimate_tex.exe -destinationPath ultimate_tex_win_x64.zip
     - name: Upload Zip
       uses: actions/upload-artifact@v4
