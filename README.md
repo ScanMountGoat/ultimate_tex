@@ -2,7 +2,7 @@
 Texture conversion utilities for Smash Ultimate. Report any bugs or request new features in [issues](https://github.com/ScanMountGoat/ultimate_tex/issues).
 
 ## ultimate_tex_app
-![image](https://github.com/ScanMountGoat/ultimate_tex/assets/23301691/0c38e6de-6800-42c3-b250-efcf4d3cb490)
+![image](https://github.com/user-attachments/assets/791c08c0-f5b9-47f2-a47d-8686d403bd85)
 
 A desktop application for batch converting texture files. Download the program in [releases](https://github.com/ScanMountGoat/ultimate_tex/releases).
 
