@@ -7,6 +7,7 @@ use std::sync::Arc;
 use dioxus::prelude::*;
 use dioxus::{html::HasFileData, prelude::dioxus_elements::FileEngine};
 use dioxus_desktop::{tao::window::Icon, Config, WindowBuilder};
+use directories::ProjectDirs;
 use image_dds::{ImageFormat, Mipmaps, Quality};
 use rfd::FileDialog;
 use strum::IntoEnumIterator;
@@ -28,7 +29,13 @@ fn main() {
                         .with_title(concat!("Ultimate Tex ", env!("CARGO_PKG_VERSION")))
                         .with_window_icon(Some(icon)),
                 )
-                .with_disable_context_menu(true),
+                .with_disable_context_menu(true)
+                .with_data_directory(
+                    // Avoid putting webview files in application directory.
+                    ProjectDirs::from("", "", "ultimate_tex")
+                        .unwrap()
+                        .data_dir(),
+                ),
         )
         .launch(app);
 }

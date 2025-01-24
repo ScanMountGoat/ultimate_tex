@@ -6,6 +6,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ## unreleased
 ### Changed
 * Adjusted UI to show thumbnail previews for images. 
+* Improvements for DDS decoding and encoding.
+
+### Fixed
+* Fixed an issue where some BNTX files would not load.
 
 ## 0.2.3 - 2023-12-21
 ### Fixed
