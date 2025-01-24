@@ -61,11 +61,8 @@ fn app() -> Element {
 
     let save_in_same_folder = app.read().settings.save_in_same_folder;
 
-    let show_compressed_options = app
-        .read()
-        .settings
-        .overrides
-        .output_file_type
+    let override_output_file_type = app.read().settings.overrides.output_file_type;
+    let show_compressed_options = override_output_file_type
         .map(is_compressed_type)
         .unwrap_or(true);
 
@@ -238,14 +235,13 @@ fn app() -> Element {
         }
         if !save_in_same_folder {
             // TODO: use an input with type directory instead?
-            // TODO: display the folder value
             div { class: "grid-horizontal",
                 button {
                     style: "width: auto;",
                     class: "secondary",
                     onclick: move |_| {
                         if let Some(folder) = FileDialog::new()
-                            .set_title("Select Nutexb Root Folder")
+                            .set_title("Select Output Folder")
                             .pick_folder()
                         {
                             app.with_mut(|a| a.settings.output_folder = Some(folder));
@@ -281,7 +277,7 @@ fn app() -> Element {
                             id: "outputType{option}",
                             name: "outputType",
                             value: "{option}",
-                            checked: app.read().settings.overrides.output_file_type == Some(option),
+                            checked: override_output_file_type == Some(option),
                             oninput: move |e| {
                                 app.with_mut(|a| {
                                     a.settings.overrides.output_file_type = Some(e.value().parse().unwrap());
@@ -297,7 +293,7 @@ fn app() -> Element {
                         id: "outputTypeNull",
                         name: "outputType",
                         value: "",
-                        checked: app.read().settings.overrides.output_file_type.is_none(),
+                        checked: override_output_file_type.is_none(),
                         oninput: move |_| {
                             app.with_mut(|a| a.settings.overrides.output_file_type = None);
                         },
@@ -456,7 +452,7 @@ fn app() -> Element {
                             td { "{item.format}" }
                             td { "{item.dimensions.0}x{item.dimensions.1}x{item.dimensions.2}" }
                             td {
-                                match app.read().settings.overrides.output_file_type {
+                                match override_output_file_type {
                                     Some(ty) => rsx! {
                                     "{ty}"
                                     },
@@ -481,6 +477,7 @@ fn app() -> Element {
                                     },
                                     None => rsx! {
                                         select {
+                                            disabled: !is_compressed_type(override_output_file_type.unwrap_or(item.output_file_type)),
                                             onchange: move |e| {
                                                 app.with_mut(|a| {
                                                     a.settings.file_settings[i].output_format = e.value().parse().unwrap();
@@ -500,6 +497,7 @@ fn app() -> Element {
                                     },
                                     None => rsx! {
                                         select {
+                                            disabled: !is_compressed_type(override_output_file_type.unwrap_or(item.output_file_type)),
                                             onchange: move |e| {
                                                 app.with_mut(|a| {
                                                     a.settings.file_settings[i].output_quality = e.value().parse().unwrap();
@@ -519,6 +517,7 @@ fn app() -> Element {
                                     },
                                     None => rsx! {
                                         select {
+                                            disabled: !is_compressed_type(override_output_file_type.unwrap_or(item.output_file_type)),
                                             onchange: move |e| {
                                                 app.with_mut(|a| {
                                                     a.settings.file_settings[i].output_mipmaps = e.value().parse().unwrap();
