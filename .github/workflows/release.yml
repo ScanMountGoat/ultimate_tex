@@ -18,7 +18,11 @@ jobs:
       run: cargo binstall dioxus-cli --version 0.6.2
     - name: Bundle
       working-directory: ./ultimate_tex_app
-      run: dx bundle --release
+      run: cargo build --release
+    - name: Set Icon
+      run: |
+        curl.exe -sSL "https://github.com/electron/rcedit/releases/download/v2.0.0/rcedit-x64.exe" -o rcedit.exe
+        .\rcedit.exe target/release/ultimate_tex_app.exe --set-icon ultimate_tex_app/icons/icon.ico
     - name: Create Zip
       run: |
         ren target/dx/ultimate_tex_app/bundle/windows/ultimate_tex_app.exe target/dx/ultimate_tex_app/bundle/windows/ultimate_tex.exe
