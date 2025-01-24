@@ -16,7 +16,7 @@ jobs:
     - uses: cargo-bins/cargo-binstall@main
     - name: Install dioxus-cli
       run: cargo binstall dioxus-cli --version 0.6.2
-    - name: Bundle
+    - name: Build
       working-directory: ./ultimate_tex_app
       run: cargo build --release
     - name: Set Icon
@@ -25,8 +25,8 @@ jobs:
         .\rcedit.exe target/release/ultimate_tex_app.exe --set-icon ultimate_tex_app/icons/icon.ico
     - name: Create Zip
       run: |
-        ren target/dx/ultimate_tex_app/bundle/windows/ultimate_tex_app.exe target/dx/ultimate_tex_app/bundle/windows/ultimate_tex.exe
-        Compress-Archive -path target/dx/ultimate_tex_app/bundle/windows/ultimate_tex_app.exe -destinationPath ultimate_tex_win_x64.zip
+        ren target/release/ultimate_tex_app.exe target/release/ultimate_tex.exe
+        Compress-Archive -path target/release/ultimate_tex.exe -destinationPath ultimate_tex_win_x64.zip
     - name: Upload Zip
       uses: actions/upload-artifact@v4
       with:
@@ -90,7 +90,7 @@ jobs:
     - uses: cargo-bins/cargo-binstall@main
     - name: Install dioxus-cli
       run: cargo binstall dioxus-cli --version 0.6.2
-    - name: Bundle
+    - name: Build
       working-directory: ./ultimate_tex_app
       run: cargo rustc --release -- -C link-args=-lstdc++
     - name: Create Zip
