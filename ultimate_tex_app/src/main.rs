@@ -89,8 +89,7 @@ fn app() -> Element {
                     tokio::task::spawn_blocking(pick_files).await.unwrap()
                 {
                     app.with_mut(|a| {
-                        a.png_thumbnails.extend(new_thumbnails);
-                        a.settings.file_settings.extend(new_settings);
+                        add_image_files(a, new_thumbnails, new_settings);
                     });
                 }
             }
@@ -104,9 +103,7 @@ fn app() -> Element {
             .await
             .unwrap();
         app.with_mut(|a| {
-            // TODO: Handle duplicate image paths.
-            a.png_thumbnails.extend(new_thumbnails);
-            a.settings.file_settings.extend(new_settings);
+            add_image_files(a, new_thumbnails, new_settings);
         });
     };
 
@@ -561,6 +558,25 @@ fn app() -> Element {
                     add_dropped_files(file_engine).await;
                 }
             },
+        }
+    }
+}
+
+fn add_image_files(
+    a: &mut App,
+    new_thumbnails: Vec<String>,
+    new_settings: Vec<app::ImageFileSettings>,
+) {
+    // Prevent adding duplicate paths.
+    for (thumbnail, settings) in new_thumbnails.into_iter().zip(new_settings) {
+        if !a
+            .settings
+            .file_settings
+            .iter()
+            .any(|t| t.name == settings.name)
+        {
+            a.png_thumbnails.push(thumbnail);
+            a.settings.file_settings.push(settings);
         }
     }
 }
