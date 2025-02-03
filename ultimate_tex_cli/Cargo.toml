@@ -4,6 +4,6 @@ version = "0.3.0"
 edition = "2021"
 
 [dependencies]
-ultimate_tex = { path = "../ultimate_tex" }
+ultimate_tex_lib = { path = "../ultimate_tex_lib" }
 image_dds = "0.7.0"
 clap = { version = "4.1.1", features = ["derive"] }

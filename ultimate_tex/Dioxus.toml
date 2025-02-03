@@ -1,7 +1,7 @@
 [application]
 
 # App (Project) Name
-name = "ultimate_tex_app"
+name = "ultimate_tex"
 
 # Dioxus App Default Platform
 # desktop, web
@@ -17,7 +17,7 @@ asset_dir = "public"
 [web.app]
 
 # HTML title tag content
-title = "ultimate_tex_app"
+title = "ultimate_tex"
 
 [web.watcher]
 

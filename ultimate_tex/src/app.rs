@@ -7,7 +7,7 @@ use base64::prelude::*;
 use image_dds::{image::codecs::png::PngEncoder, ImageFormat, Mipmaps, Quality};
 use rayon::prelude::*;
 use rfd::FileDialog;
-use ultimate_tex::{ImageFile, NutexbFile};
+use ultimate_tex_lib::{ImageFile, NutexbFile};
 
 // TODO: Add proper logging using events?
 #[derive(Clone, Default)]

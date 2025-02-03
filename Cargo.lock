@@ -5193,17 +5193,6 @@ dependencies = [
 name = "ultimate_tex"
 version = "0.3.0"
 dependencies = [
- "bntx",
- "image",
- "image_dds",
- "nutexb",
- "strum 0.24.1",
-]
-
-[[package]]
-name = "ultimate_tex_app"
-version = "0.3.0"
-dependencies = [
  "base64 0.21.7",
  "dioxus",
  "dioxus-desktop",
@@ -5217,7 +5206,7 @@ dependencies = [
  "serde_json",
  "strum 0.26.3",
  "tokio",
- "ultimate_tex",
+ "ultimate_tex_lib",
 ]
 
 [[package]]
@@ -5226,7 +5215,18 @@ version = "0.3.0"
 dependencies = [
  "clap",
  "image_dds",
- "ultimate_tex",
+ "ultimate_tex_lib",
+]
+
+[[package]]
+name = "ultimate_tex_lib"
+version = "0.3.0"
+dependencies = [
+ "bntx",
+ "image",
+ "image_dds",
+ "nutexb",
+ "strum 0.24.1",
 ]
 
 [[package]]

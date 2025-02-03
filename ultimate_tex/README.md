@@ -1,4 +1,4 @@
-# ultimate_tex_app
+# ultimate_tex
 A desktop application built with [Dioxus](https://dioxuslabs.com/). 
 
 ## Development

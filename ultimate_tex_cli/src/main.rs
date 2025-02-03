@@ -2,7 +2,7 @@ use std::{path::Path, str::FromStr};
 
 use clap::Parser;
 use image_dds::Mipmaps;
-use ultimate_tex::ImageFile;
+use ultimate_tex_lib::ImageFile;
 
 #[derive(Parser, Debug)]
 #[command(author, version, about = "Smash Ultimate texture converter", long_about = None)]
