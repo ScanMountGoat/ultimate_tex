@@ -148,9 +148,12 @@ fn app() -> Element {
         });
     };
 
+    const PICO_CSS: Asset = asset!("./src/pico.min.css");
+    const APP_CSS: Asset = asset!("./src/app.css");
+
     rsx! {
-        style { {include_str!("./pico.min.css")} }
-        style { {include_str!("./app.css")} }
+        document::Stylesheet { href: PICO_CSS }
+        document::Stylesheet { href: APP_CSS }
 
         nav {
             ul {
