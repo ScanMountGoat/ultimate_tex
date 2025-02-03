@@ -3,6 +3,10 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## unreleased
+### Fixed
+* Fixed menu item text being cut off on some platforms.
+
 ## 0.3.0 - 2025-01-24
 ### Changed
 * Adjusted UI to show thumbnail previews for images. 

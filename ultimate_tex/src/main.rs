@@ -168,17 +168,14 @@ fn app() -> Element {
                             "File"
                         }
                         ul { role: "listbox",
+                            li { onclick: add_files, "Add Files..." }
                             li {
-                                a { onclick: add_files, "Add Files..." }
-                            }
-                            li {
-                                a {
-                                    onclick: move |_| {
-                                        app.with_mut(|a| a.clear_files());
-                                        is_file_open.set(false);
-                                    },
-                                    "Clear Files..."
-                                }
+                                onclick: move |_| {
+                                    app.with_mut(|a| a.clear_files());
+                                    is_file_open.set(false);
+                                },
+                                "Clear Files..."
+                            
                             }
                         }
                     }
@@ -195,13 +192,11 @@ fn app() -> Element {
                         }
                         ul { role: "listbox",
                             li {
-                                a {
-                                    onclick: move |_| {
-                                        optimize_nutexb_files();
-                                        is_batch_open.set(false);
-                                    },
-                                    "Optimize Nutexb Padding..."
-                                }
+                                onclick: move |_| {
+                                    optimize_nutexb_files();
+                                    is_batch_open.set(false);
+                                },
+                                "Optimize Nutexb Padding..."
                             }
                         }
                     }
@@ -218,13 +213,11 @@ fn app() -> Element {
                         }
                         ul { role: "listbox",
                             li {
-                                a {
-                                    onclick: move |_| {
-                                        is_help_open.set(false);
-                                        let _ = open::that("https://github.com/ScanMountGoat/ultimate_tex/wiki");
-                                    },
-                                    "Wiki"
-                                }
+                                onclick: move |_| {
+                                    is_help_open.set(false);
+                                    let _ = open::that("https://github.com/ScanMountGoat/ultimate_tex/wiki");
+                                },
+                                "Wiki"
                             }
                         }
                     }
