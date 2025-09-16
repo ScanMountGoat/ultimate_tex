@@ -175,7 +175,6 @@ fn app() -> Element {
                                     is_file_open.set(false);
                                 },
                                 "Clear Files..."
-                            
                             }
                         }
                     }
@@ -456,9 +455,7 @@ fn app() -> Element {
                             td { "{item.dimensions.0}x{item.dimensions.1}x{item.dimensions.2}" }
                             td {
                                 match override_output_file_type {
-                                    Some(ty) => rsx! {
-                                    "{ty}"
-                                    },
+                                    Some(ty) => rsx! { "{ty}" },
                                     None => rsx! {
                                         select {
                                             onchange: move |e| {
@@ -475,9 +472,7 @@ fn app() -> Element {
                             }
                             td {
                                 match app.read().settings.overrides.output_format {
-                                    Some(ty) => rsx! {
-                                    "{ty}"
-                                    },
+                                    Some(ty) => rsx! { "{ty}" },
                                     None => rsx! {
                                         select {
                                             disabled: !is_compressed_type(override_output_file_type.unwrap_or(item.output_file_type)),
@@ -495,9 +490,7 @@ fn app() -> Element {
                             }
                             td {
                                 match app.read().settings.overrides.output_quality {
-                                    Some(ty) => rsx! {
-                                    "{ty}"
-                                    },
+                                    Some(ty) => rsx! { "{ty}" },
                                     None => rsx! {
                                         select {
                                             disabled: !is_compressed_type(override_output_file_type.unwrap_or(item.output_file_type)),
@@ -515,9 +508,7 @@ fn app() -> Element {
                             }
                             td {
                                 match app.read().settings.overrides.mipmaps {
-                                    Some(ty) => rsx! {
-                                    "{ty}"
-                                    },
+                                    Some(ty) => rsx! { "{ty}" },
                                     None => rsx! {
                                         select {
                                             disabled: !is_compressed_type(override_output_file_type.unwrap_or(item.output_file_type)),
