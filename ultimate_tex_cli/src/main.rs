@@ -28,16 +28,16 @@ struct Args {
     no_mipmaps: bool,
 }
 
-fn main() {
+fn main() -> anyhow::Result<()> {
     let args = Args::parse();
     let input = Path::new(&args.input);
     let output = Path::new(&args.output);
 
-    let input_image = ImageFile::from_file(input).unwrap();
+    let input_image = ImageFile::from_file(input)?;
 
     let format = args
         .format
-        .map(|s| image_dds::ImageFormat::from_str(&s).unwrap())
+        .and_then(|s| image_dds::ImageFormat::from_str(&s).ok())
         .unwrap_or(image_dds::ImageFormat::BC7RgbaUnorm);
 
     let quality = image_dds::Quality::Fast;
@@ -56,16 +56,11 @@ fn main() {
         .to_lowercase()
         .as_str()
     {
-        "nutexb" => input_image
-            .save_nutexb(output, format, quality, mipmaps)
-            .unwrap(),
-        "bntx" => input_image
-            .save_bntx(output, format, quality, mipmaps)
-            .unwrap(),
-        "dds" => input_image
-            .save_dds(output, format, quality, mipmaps)
-            .unwrap(),
+        "nutexb" => input_image.save_nutexb(output, format, quality, mipmaps)?,
+        "bntx" => input_image.save_bntx(output, format, quality, mipmaps)?,
+        "dds" => input_image.save_dds(output, format, quality, mipmaps)?,
         // Assume the other formats are image formats.
-        _ => input_image.save_image(output).unwrap(),
+        _ => input_image.save_image(output)?,
     }
+    Ok(())
 }

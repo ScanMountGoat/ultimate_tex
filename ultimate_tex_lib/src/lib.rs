@@ -1,4 +1,4 @@
-use std::{error::Error, path::Path};
+use std::path::Path;
 
 pub use bntx::Bntx;
 pub use nutexb::NutexbFile;
@@ -13,7 +13,7 @@ pub enum ImageFile {
 }
 
 impl ImageFile {
-    pub fn from_file<P: AsRef<Path>>(input: P) -> Result<Self, Box<dyn Error>> {
+    pub fn from_file<P: AsRef<Path>>(input: P) -> anyhow::Result<Self> {
         match input
             .as_ref()
             .extension()
@@ -56,7 +56,7 @@ impl ImageFile {
         }
     }
 
-    pub fn to_image(&self) -> Result<RgbaImage, Box<dyn Error>> {
+    pub fn to_image(&self) -> anyhow::Result<RgbaImage> {
         // TODO: EXR support for BC6H?
         match self {
             ImageFile::Image(image) => Ok(image.clone()),
@@ -74,7 +74,7 @@ impl ImageFile {
         }
     }
 
-    pub fn save_image(&self, output: &Path) -> Result<(), Box<dyn Error>> {
+    pub fn save_image(&self, output: &Path) -> anyhow::Result<()> {
         self.to_image()?.save(output).map_err(Into::into)
     }
 
@@ -84,7 +84,7 @@ impl ImageFile {
         image_format: image_dds::ImageFormat,
         quality: image_dds::Quality,
         mipmaps: image_dds::Mipmaps,
-    ) -> Result<(), Box<dyn Error>> {
+    ) -> anyhow::Result<()> {
         // Nutexb files use the file name as the internal name.
         let name = output
             .with_extension("")
@@ -127,7 +127,7 @@ impl ImageFile {
         image_format: image_dds::ImageFormat,
         quality: image_dds::Quality,
         mipmaps: image_dds::Mipmaps,
-    ) -> Result<(), Box<dyn Error>> {
+    ) -> anyhow::Result<()> {
         // Nutexb files use the file name as the internal name.
         let name = output
             .with_extension("")
@@ -169,7 +169,7 @@ impl ImageFile {
         image_format: image_dds::ImageFormat,
         quality: image_dds::Quality,
         mipmaps: image_dds::Mipmaps,
-    ) -> Result<(), Box<dyn Error>> {
+    ) -> anyhow::Result<()> {
         match self {
             ImageFile::Image(image) => {
                 let dds = image_dds::dds_from_image(image, image_format, quality, mipmaps)?;
@@ -229,7 +229,7 @@ fn encode_dds(
     image_format: ImageFormat,
     quality: image_dds::Quality,
     mipmaps: image_dds::Mipmaps,
-) -> Result<Dds, Box<dyn Error>> {
+) -> anyhow::Result<Dds> {
     if matches!(dds_image_format(dds), Ok(format) if format == image_format) {
         // Avoid lossy conversions if the format doesn't change.
         // TODO: Handle different mipmap counts.
@@ -249,7 +249,7 @@ fn encode_dds(
     }
 }
 
-fn write_dds(output: &Path, dds: &Dds) -> Result<(), Box<dyn Error>> {
+fn write_dds(output: &Path, dds: &Dds) -> anyhow::Result<()> {
     let mut writer = std::io::BufWriter::new(std::fs::File::create(output)?);
     dds.write(&mut writer)?;
     Ok(())

@@ -7,3 +7,4 @@ edition = "2021"
 ultimate_tex_lib = { path = "../ultimate_tex_lib" }
 image_dds = "0.7.0"
 clap = { version = "4.1.1", features = ["derive"] }
+anyhow = "1.0"

@@ -5681,6 +5681,7 @@ dependencies = [
 name = "ultimate_tex_cli"
 version = "0.3.0"
 dependencies = [
+ "anyhow",
  "clap",
  "image_dds",
  "ultimate_tex_lib",
@@ -5690,6 +5691,7 @@ dependencies = [
 name = "ultimate_tex_lib"
 version = "0.3.0"
 dependencies = [
+ "anyhow",
  "bntx",
  "image",
  "image_dds",
