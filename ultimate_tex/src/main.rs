@@ -6,14 +6,14 @@ use std::sync::Arc;
 
 use dioxus::prelude::*;
 use dioxus::{html::HasFileData, prelude::dioxus_elements::FileEngine};
-use dioxus_desktop::{tao::window::Icon, Config, WindowBuilder};
+use dioxus_desktop::{Config, WindowBuilder, tao::window::Icon};
 use directories::ProjectDirs;
 use image_dds::{ImageFormat, Mipmaps, Quality};
 use rfd::FileDialog;
 use strum::IntoEnumIterator;
 
 mod app;
-use app::{optimize_nutexb_files, App, ImageFileType};
+use app::{App, ImageFileType, optimize_nutexb_files};
 
 use crate::app::{load_files, pick_files};
 

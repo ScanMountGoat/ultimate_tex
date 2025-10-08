@@ -4,7 +4,7 @@ use std::{
 };
 
 use base64::prelude::*;
-use image_dds::{image::codecs::png::PngEncoder, ImageFormat, Mipmaps, Quality};
+use image_dds::{ImageFormat, Mipmaps, Quality, image::codecs::png::PngEncoder};
 use rayon::prelude::*;
 use rfd::FileDialog;
 use ultimate_tex_lib::{ImageFile, NutexbFile};

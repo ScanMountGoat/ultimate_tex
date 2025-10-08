@@ -2,7 +2,7 @@
 name = "ultimate_tex"
 version = "0.3.0"
 authors = ["ScanMountGoat <>"]
-edition = "2021"
+edition = "2024"
 
 [dependencies]
 dioxus-desktop = "0.7.0-rc.0"

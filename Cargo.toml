@@ -1,6 +1,6 @@
 [workspace]
 members = ["ultimate_tex_lib", "ultimate_tex_cli", "ultimate_tex"]
-resolver = "2"
+resolver = "3"
 
 [profile]
 
