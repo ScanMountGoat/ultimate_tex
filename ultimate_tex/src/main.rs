@@ -1,11 +1,8 @@
 // Prevents additional console window on Windows in release.
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
-use std::path::PathBuf;
-use std::sync::Arc;
-
+use dioxus::html::FileData;
 use dioxus::prelude::*;
-use dioxus::{html::HasFileData, prelude::dioxus_elements::FileEngine};
 use dioxus_desktop::{Config, WindowBuilder, tao::window::Icon};
 use directories::ProjectDirs;
 use image_dds::{ImageFormat, Mipmaps, Quality};
@@ -100,9 +97,8 @@ fn app() -> Element {
         });
     };
 
-    let add_dropped_files = move |file_engine: Arc<dyn FileEngine>| async move {
-        let files = file_engine.files();
-        let paths = files.iter().map(PathBuf::from).collect();
+    let add_dropped_files = move |files: Vec<FileData>| async move {
+        let paths = files.iter().map(|f| f.path()).collect();
         let (new_thumbnails, new_settings) = tokio::task::spawn_blocking(move || load_files(paths))
             .await
             .unwrap();
@@ -148,8 +144,8 @@ fn app() -> Element {
         });
     };
 
-    const PICO_CSS: Asset = asset!("./src/pico.min.css");
-    const APP_CSS: Asset = asset!("./src/app.css");
+    const PICO_CSS: Asset = asset!("/src/pico.min.css");
+    const APP_CSS: Asset = asset!("/src/app.css");
 
     rsx! {
         document::Stylesheet { href: PICO_CSS }
@@ -547,9 +543,8 @@ fn app() -> Element {
             id: "drop-zone",
             class: "drop-zone",
             ondrop: move |e| async move {
-                if let Some(file_engine) = e.files() {
-                    add_dropped_files(file_engine).await;
-                }
+                let files = e.data_transfer().files();
+                add_dropped_files(files).await;
             },
         }
     }
