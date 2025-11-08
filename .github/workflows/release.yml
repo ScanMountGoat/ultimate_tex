@@ -53,7 +53,7 @@ jobs:
         target: ${{matrix.target}}
     - name: Install dioxus-cli
       run: |
-        url="https://github.com/DioxusLabs/dioxus/releases/download/v0.7.1/dx-${{matrix.target}}-v0.7.1.tar.gz"
+        url="https://github.com/DioxusLabs/dioxus/releases/download/v0.7.1/dx-${{matrix.target}}.tar.gz"
         mkdir dioxus-cli
         curl -sSL $url | tar -xz --directory=./dioxus-cli
         echo `pwd`/dioxus-cli >> $GITHUB_PATH
