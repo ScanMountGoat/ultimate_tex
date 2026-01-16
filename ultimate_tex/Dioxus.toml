@@ -44,6 +44,8 @@ script = []
 script = []
 
 [bundle]
+identifier = "com.ultimate_tex"
+publisher = "ultimate_tex"
 
 icon = [
     "icons/32x32.png",

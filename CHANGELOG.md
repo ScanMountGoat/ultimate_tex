@@ -7,6 +7,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ### Fixed
 * Fixed menu item text being cut off on some platforms.
 * Fixed an issue where some BNTX files would rebuild incorrectly and cause crashes in game.
+* Fixed a crash when opening a file dialog for the generated MacOS .app application bundle.
 
 ## 0.3.0 - 2025-01-24
 ### Changed
