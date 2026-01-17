@@ -3,7 +3,10 @@
 
 use dioxus::html::FileData;
 use dioxus::prelude::*;
-use dioxus_desktop::{Config, WindowBuilder, tao::window::Icon};
+use dioxus_desktop::{
+    Config, WindowBuilder,
+    tao::{platform::windows::WindowBuilderExtWindows, window::Icon},
+};
 use directories::ProjectDirs;
 use image_dds::{ImageFormat, Mipmaps, Quality};
 use rfd::FileDialog;
@@ -18,23 +21,25 @@ fn main() {
     let image = image_dds::image::load_from_memory(include_bytes!("../icons/32x32.png")).unwrap();
     let icon = Icon::from_rgba(image.into_rgba8().into_raw(), 32, 32).unwrap();
 
-    LaunchBuilder::desktop()
-        .with_cfg(
-            Config::new()
-                .with_window(
-                    WindowBuilder::new()
-                        .with_title(concat!("Ultimate Tex ", env!("CARGO_PKG_VERSION")))
-                        .with_window_icon(Some(icon)),
-                )
-                .with_disable_context_menu(true)
-                .with_data_directory(
-                    // Avoid putting webview files in application directory.
-                    ProjectDirs::from("", "", "ultimate_tex")
-                        .unwrap()
-                        .data_dir(),
-                ),
+    let mut config = Config::new()
+        .with_window(
+            WindowBuilder::new()
+                .with_title(concat!("Ultimate Tex ", env!("CARGO_PKG_VERSION")))
+                .with_window_icon(Some(icon))
+                .with_drag_and_drop(true),
         )
-        .launch(app);
+        .with_data_directory(
+            // Avoid putting webview files in application directory.
+            ProjectDirs::from("", "", "ultimate_tex")
+                .unwrap()
+                .data_dir(),
+        );
+    if cfg!(not(debug_assertions)) {
+        // Hide the webview menu and developer tools for release builds.
+        config = config.with_menu(None);
+    }
+
+    LaunchBuilder::desktop().with_cfg(config).launch(app);
 }
 
 fn app() -> Element {
