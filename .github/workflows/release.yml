@@ -13,15 +13,18 @@ jobs:
     runs-on: windows-latest
     steps:
     - uses: actions/checkout@v3
+    - uses: cargo-bins/cargo-binstall@main
+    - name: Install dioxus-cli
+      run: cargo binstall dioxus-cli --version 0.7.2
     - name: Build
       working-directory: ./ultimate_tex
-      run: cargo build --release
+      run: dx build --release --desktop
     - name: Set Icon
       run: |
         curl.exe -sSL "https://github.com/electron/rcedit/releases/download/v2.0.0/rcedit-x64.exe" -o rcedit.exe
-        .\rcedit.exe target/release/ultimate_tex.exe --set-icon ultimate_tex/icons/icon.ico
+        .\rcedit.exe target/dx/ultimate_tex/release/windows/app/ultimate_tex.exe --set-icon ultimate_tex/icons/icon.ico
     - name: Create Zip
-      run: Compress-Archive -path target/release/ultimate_tex.exe -destinationPath ultimate_tex_win_x64.zip
+      run: Compress-Archive -path target/dx/ultimate_tex/release/windows/app/ultimate_tex.exe -destinationPath ultimate_tex_win_x64.zip
     - name: Upload Zip
       uses: actions/upload-artifact@v4
       with:
