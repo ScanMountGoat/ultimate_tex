@@ -3,10 +3,7 @@
 
 use dioxus::html::FileData;
 use dioxus::prelude::*;
-use dioxus_desktop::{
-    Config, WindowBuilder,
-    tao::{platform::windows::WindowBuilderExtWindows, window::Icon},
-};
+use dioxus_desktop::{Config, WindowBuilder, tao::window::Icon};
 use directories::ProjectDirs;
 use image_dds::{ImageFormat, Mipmaps, Quality};
 use rfd::FileDialog;
@@ -25,8 +22,7 @@ fn main() {
         .with_window(
             WindowBuilder::new()
                 .with_title(concat!("Ultimate Tex ", env!("CARGO_PKG_VERSION")))
-                .with_window_icon(Some(icon))
-                .with_drag_and_drop(true),
+                .with_window_icon(Some(icon)),
         )
         .with_data_directory(
             // Avoid putting webview files in application directory.
