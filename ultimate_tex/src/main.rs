@@ -110,17 +110,17 @@ fn app() -> Element {
     use_effect(|| {
         document::eval(
             r#"
-                window.addEventListener("dragover", function(e)
-                {
-                    document.getElementById("drop-zone").style.visibility = "";
-                    document.getElementById("drop-zone").style.pointerEvents = "all";
-
+                zone = document.getElementById("drop-zone");
+                window.addEventListener("dragenter", function(e) {
+                    // Intercept all drop events on a drop zone that fills the window.
+                    zone.style.visibility = "";
+                    zone.style.pointerEvents = "all";
                 });
 
-                window.addEventListener("dragleave", function(e)
-                {
-                    document.getElementById("drop-zone").style.visibility = "hidden";
-                    document.getElementById("drop-zone").style.pointerEvents = "none";
+                zone.addEventListener("drop", function(e) {
+                    // Disable interacting with the drop zone after dropping.
+                    zone.style.visibility = "hidden";
+                    zone.style.pointerEvents = "none";
                 });
             "#,
         );
