@@ -5,8 +5,8 @@ authors = ["ScanMountGoat <>"]
 edition = "2024"
 
 [dependencies]
-dioxus-desktop = "0.7.1"
-dioxus = {version = "0.7.1", features = ["desktop"] }
+dioxus-desktop = "0.7.2"
+dioxus = {version = "0.7.2", features = ["desktop"] }
 serde_json = "1.0"
 serde = { version = "1.0", features = ["derive"] }
 ultimate_tex_lib = { path = "../ultimate_tex_lib" }

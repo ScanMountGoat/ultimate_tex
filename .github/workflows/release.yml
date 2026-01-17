@@ -53,7 +53,7 @@ jobs:
         target: ${{matrix.target}}
     - name: Install dioxus-cli
       run: |
-        url="https://github.com/DioxusLabs/dioxus/releases/download/v0.7.1/dx-${{matrix.target}}.tar.gz"
+        url="https://github.com/DioxusLabs/dioxus/releases/download/v0.7.2/dx-${{matrix.target}}.tar.gz"
         mkdir dioxus-cli
         curl -sSL $url | tar -xz --directory=./dioxus-cli
         echo `pwd`/dioxus-cli >> $GITHUB_PATH
@@ -95,7 +95,7 @@ jobs:
           librsvg2-dev
     - uses: cargo-bins/cargo-binstall@main
     - name: Install dioxus-cli
-      run: cargo binstall dioxus-cli --version 0.7.1
+      run: cargo binstall dioxus-cli --version 0.7.2
     - name: Build
       working-directory: ./ultimate_tex
       run: cargo rustc --release -- -C link-args=-lstdc++
