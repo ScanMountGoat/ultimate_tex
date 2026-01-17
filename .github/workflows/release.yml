@@ -54,6 +54,7 @@ jobs:
       with:
         toolchain: stable
         target: ${{matrix.target}}
+    - uses: cargo-bins/cargo-binstall@main
     - name: Install dioxus-cli
       run: cargo binstall dioxus-cli --version 0.7.3
     - name: Bundle
