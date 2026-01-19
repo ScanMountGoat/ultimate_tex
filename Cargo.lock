@@ -5193,7 +5193,7 @@ dependencies = [
 
 [[package]]
 name = "ultimate_tex"
-version = "0.3.0"
+version = "0.3.1"
 dependencies = [
  "base64",
  "dioxus",
@@ -5213,7 +5213,7 @@ dependencies = [
 
 [[package]]
 name = "ultimate_tex_cli"
-version = "0.3.0"
+version = "0.3.1"
 dependencies = [
  "anyhow",
  "clap",
@@ -5223,7 +5223,7 @@ dependencies = [
 
 [[package]]
 name = "ultimate_tex_lib"
-version = "0.3.0"
+version = "0.3.1"
 dependencies = [
  "anyhow",
  "bntx",
