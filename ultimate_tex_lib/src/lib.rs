@@ -3,7 +3,7 @@ use std::path::Path;
 pub use bntx::Bntx;
 pub use nutexb::NutexbFile;
 
-use image_dds::{dds_image_format, ddsfile::Dds, image::RgbaImage, ImageFormat, Surface};
+use image_dds::{ImageFormat, Surface, dds_image_format, ddsfile::Dds, image::RgbaImage};
 
 pub enum ImageFile {
     Image(RgbaImage),
@@ -22,7 +22,14 @@ impl ImageFile {
             .to_lowercase()
             .as_str()
         {
-            "nutexb" => Ok(ImageFile::Nutexb(NutexbFile::read_from_file(input)?)),
+            "nutexb" => {
+                let mut nutexb = NutexbFile::read_from_file(input)?;
+                // Some nutexbs saved with older tools have too many mipmaps specified.
+                // The image data is usually still valid.
+                // Attempt to fix the mipmap count here to keep this as an error in image_dds.
+                fix_mipmap_count(&mut nutexb);
+                Ok(ImageFile::Nutexb(nutexb))
+            }
             "bntx" => Ok(ImageFile::Bntx(Bntx::from_file(input)?)),
             "dds" => {
                 let mut reader = std::io::BufReader::new(std::fs::File::open(input)?);
@@ -193,6 +200,16 @@ impl ImageFile {
 
         Ok(())
     }
+}
+
+fn fix_mipmap_count(nutexb: &mut NutexbFile) {
+    let max_mipmaps = nutexb
+        .footer
+        .width
+        .max(nutexb.footer.height)
+        .max(nutexb.footer.depth)
+        .ilog2();
+    nutexb.footer.mipmap_count = nutexb.footer.mipmap_count.min(max_mipmaps);
 }
 
 fn bntx_image_format(bntx: &Bntx) -> ImageFormat {

@@ -118,16 +118,19 @@ pub fn load_files(files: Vec<PathBuf>) -> (Vec<String>, Vec<ImageFileSettings>) 
     let start = std::time::Instant::now();
 
     // Only the expensive file reading benefits from parallelism.
+    // TODO: Store or log errors?
     let new_files: Vec<_> = files
         .par_iter()
-        .map(|file| ImageFile::from_file(file).unwrap())
+        .filter_map(|file| Some((file, ImageFile::from_file(file).ok()?)))
         .collect();
-    let new_thumbnails: Vec<_> = new_files.par_iter().map(encode_png_base64).collect();
+    let new_thumbnails: Vec<_> = new_files
+        .par_iter()
+        .map(|(_, image)| encode_png_base64(image))
+        .collect();
 
-    let new_settings = files
-        .iter()
-        .zip(new_files.iter())
-        .map(|(file, image)| ImageFileSettings::from_image(file.clone(), image))
+    let new_settings = new_files
+        .into_iter()
+        .map(|(file, image)| ImageFileSettings::from_image(file.clone(), &image))
         .collect();
 
     println!("Loaded {} files in {:?}", files.len(), start.elapsed());
