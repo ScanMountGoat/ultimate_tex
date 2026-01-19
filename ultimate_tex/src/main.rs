@@ -537,7 +537,12 @@ fn app() -> Element {
         }
         if app.read().settings.file_settings.is_empty() {
             div { class: "centered-text",
-                "Drag and drop image files onto the window or add files using File > Add Files..."
+                if cfg!(windows) {
+                    // TODO: fix drag and drop on windows.
+                    "Add files using File > Add Files..."
+                } else {
+                    "Drag and drop image files onto the window or add files using File > Add Files..."
+                }
             }
         }
         div {

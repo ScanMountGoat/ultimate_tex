@@ -11,6 +11,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 * Fixed a crash when attempting to open invalid image files.
 * Fixed a crash when opening nutexb files with invalid mipmap counts.
 
+## Removed
+* Removed drag and drop support on Windows due to compatibility issues. This should hopefully be restored in a future release.
+
 ## 0.3.0 - 2025-01-24
 ### Changed
 * Adjusted UI to show thumbnail previews for images. 
