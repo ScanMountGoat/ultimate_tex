@@ -50,10 +50,10 @@ jobs:
     steps:
     - uses: actions/checkout@v3
     - name: Install Rust Toolchain
-      uses: actions-rs/toolchain@v1
+      uses: dtolnay/rust-toolchain@stable
       with:
         toolchain: stable
-        target: ${{matrix.target}}
+        targets: ${{matrix.target}}
     - uses: cargo-bins/cargo-binstall@main
     - name: Install dioxus-cli
       run: cargo binstall dioxus-cli --version 0.7.3

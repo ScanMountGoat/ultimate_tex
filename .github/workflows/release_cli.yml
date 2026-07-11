@@ -42,10 +42,10 @@ jobs:
     steps:
     - uses: actions/checkout@v3
     - name: Install Rust Toolchain
-      uses: actions-rs/toolchain@v1
+      uses: dtolnay/rust-toolchain@stable
       with:
         toolchain: stable
-        target: ${{matrix.target}}
+        targets: ${{matrix.target}}
     - name: Build
       run: cargo build -p ultimate_tex_cli --release --target ${{matrix.target}}
     - name: Sign Binary
