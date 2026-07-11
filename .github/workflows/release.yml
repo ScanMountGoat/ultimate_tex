@@ -12,7 +12,7 @@ jobs:
   build-windows:
     runs-on: windows-latest
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v6
     - uses: cargo-bins/cargo-binstall@main
     - name: Install dioxus-cli
       run: cargo binstall dioxus-cli --version 0.7.3
@@ -26,12 +26,12 @@ jobs:
     - name: Create Zip
       run: Compress-Archive -path target/dx/ultimate_tex/release/windows/app/ultimate_tex.exe -destinationPath ultimate_tex_win_x64.zip
     - name: Upload Zip
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v7
       with:
         name: ultimate_tex_win_x64
         path: ultimate_tex_win_x64.zip
     - name: Release
-      uses: softprops/action-gh-release@v1
+      uses: softprops/action-gh-release@v3
       if: startsWith(github.ref, 'refs/tags/')
       with:
         files: ultimate_tex_win_x64.zip
@@ -48,7 +48,7 @@ jobs:
           - target: aarch64-apple-darwin
             desc: apple_silicon
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v6
     - name: Install Rust Toolchain
       uses: dtolnay/rust-toolchain@stable
       with:
@@ -65,12 +65,12 @@ jobs:
         cp -r target/dx/ultimate_tex/bundle/macos/bundle/macos/UltimateTex.app ultimate_tex.app
         zip -r ultimate_tex_macos_${{matrix.desc}}.zip ultimate_tex.app
     - name: Upload Zip
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v7
       with:
         name: ultimate_tex_macos_${{matrix.desc}}
         path: ultimate_tex_macos_${{matrix.desc}}.zip
     - name: Release
-      uses: softprops/action-gh-release@v1
+      uses: softprops/action-gh-release@v3
       if: startsWith(github.ref, 'refs/tags/')
       with:
         files: ultimate_tex_macos_${{matrix.desc}}.zip
@@ -80,7 +80,7 @@ jobs:
   build-linux:
     runs-on: ubuntu-22.04
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v6
     - name: Install Ubuntu Dependencies
       run: |
         sudo apt update
@@ -102,12 +102,12 @@ jobs:
     - name: Create Zip
       run: zip -j ultimate_tex_linux_x64.zip target/release/ultimate_tex
     - name: Upload Zip
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v7
       with:
         name: ultimate_tex_linux_x64
         path: ultimate_tex_linux_x64.zip
     - name: Release
-      uses: softprops/action-gh-release@v1
+      uses: softprops/action-gh-release@v3
       if: startsWith(github.ref, 'refs/tags/')
       with:
         files: ultimate_tex_linux_x64.zip
