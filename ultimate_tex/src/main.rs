@@ -1,580 +1,517 @@
-// Prevents additional console window on Windows in release.
-#![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
+use std::path::PathBuf;
 
-use dioxus::html::FileData;
-use dioxus::prelude::*;
-use dioxus_desktop::{Config, WindowBuilder, tao::window::Icon};
-use directories::ProjectDirs;
-use image_dds::{ImageFormat, Mipmaps, Quality};
-use rfd::FileDialog;
+use gpui_kit::{
+    base::{IndexPath, h_flex, v_flex},
+    component::{
+        IconName, Sizable, Theme, ThemeRegistry,
+        button::{Button, ButtonVariants},
+        checkbox::Checkbox,
+        form::field,
+        menu::DropdownMenu,
+        radio::RadioGroup,
+        select::{Select, SelectItem, SelectState},
+        table::{Column, DataTable, TableDelegate, TableState},
+    },
+    prelude::FluentBuilder,
+    *,
+};
+use rfd::AsyncFileDialog;
 use strum::IntoEnumIterator;
 
-mod app;
-use app::{App, ImageFileType, optimize_nutexb_files};
+use crate::app::{ImageFileSettings, ImageFileType, load_files};
 
-use crate::app::{load_files, pick_files};
+// TODO: add app.rs from ultimate_tex (add dependencies)
+mod app;
+
+actions!(
+    ultimate_tex,
+    [AddFiles, ClearFiles, OptimizeNutexbPadding, OpenWiki]
+);
+
+#[derive(Clone)]
+struct EnumSelectItem<T>(T);
+
+impl<T> SelectItem for EnumSelectItem<T>
+where
+    T: PartialEq + Clone + std::fmt::Display,
+{
+    type Value = T;
+
+    fn title(&self) -> SharedString {
+        self.0.to_string().into()
+    }
+
+    fn value(&self) -> &Self::Value {
+        &self.0
+    }
+}
+
+struct File {
+    settings: ImageFileSettings,
+    output_type_select: Entity<SelectState<Vec<EnumSelectItem<ImageFileType>>>>,
+    output_format_select: Entity<SelectState<Vec<EnumSelectItem<image_dds::ImageFormat>>>>,
+    compression_select: Entity<SelectState<Vec<EnumSelectItem<image_dds::Quality>>>>,
+    mipmaps_select: Entity<SelectState<Vec<EnumSelectItem<image_dds::Mipmaps>>>>,
+}
+
+struct FilesTableDelegate {
+    files: Vec<File>,
+    columns: Vec<Column>,
+}
+
+impl FilesTableDelegate {
+    fn new() -> Self {
+        Self {
+            files: Vec::new(),
+            columns: vec![
+                Column::new("image", "Image"),
+                Column::new("name", "Name"),
+                Column::new("format", "Format"),
+                Column::new("size", "Size"),
+                Column::new("output-type", "Output Type").width(px(150.0)),
+                Column::new("output-format", "Output Format").width(px(200.0)),
+                Column::new("compression", "Compression").width(px(150.0)),
+                Column::new("mipmaps", "Mipmaps").width(px(210.0)),
+                Column::new("remove", ""),
+            ],
+        }
+    }
+
+    fn add_files<T>(&mut self, paths: &[PathBuf], window: &mut Window, cx: &mut Context<T>) {
+        // TODO: par_extend once this actually loads from disk
+        // TODO: don't add duplicate files
+
+        let (thumbnails, settings) = load_files(paths);
+
+        // TODO: set the selects to update the settings.
+        self.files.extend(settings.into_iter().map(|settings| {
+            let output_format_select =
+                cx.new(|cx| enum_select_state(settings.output_format, window, cx));
+            let compression_select =
+                cx.new(|cx| enum_select_state(settings.output_quality, window, cx));
+            let mipmaps_select =
+                cx.new(|cx| enum_select_state(settings.output_mipmaps, window, cx));
+            File {
+                settings,
+                output_type_select: cx.new(|cx| {
+                    let variants = vec![
+                        EnumSelectItem(ImageFileType::Png),
+                        EnumSelectItem(ImageFileType::Dds),
+                        EnumSelectItem(ImageFileType::Nutexb),
+                        EnumSelectItem(ImageFileType::Bntx),
+                    ];
+                    SelectState::new(variants, Some(IndexPath::new(0)), window, cx)
+                }),
+                output_format_select,
+                compression_select,
+                mipmaps_select,
+            }
+        }));
+    }
+}
+
+fn enum_select_state<T>(
+    initial_value: T,
+    window: &mut Window,
+    cx: &mut Context<'_, SelectState<Vec<EnumSelectItem<T>>>>,
+) -> SelectState<Vec<EnumSelectItem<T>>>
+where
+    T: PartialEq + Clone + IntoEnumIterator + std::fmt::Display,
+{
+    let variants = T::iter().map(EnumSelectItem).collect();
+    let index = T::iter()
+        .position(|f| f == initial_value)
+        .unwrap_or_default();
+    SelectState::new(variants, Some(IndexPath::new(index)), window, cx)
+}
+
+impl TableDelegate for FilesTableDelegate {
+    fn columns_count(&self, _: &App) -> usize {
+        self.columns.len()
+    }
+
+    fn rows_count(&self, _: &App) -> usize {
+        self.files.len()
+    }
+
+    fn column(&self, col_ix: usize, _: &App) -> Column {
+        self.columns[col_ix].clone()
+    }
+
+    fn render_td(
+        &mut self,
+        row_ix: usize,
+        col_ix: usize,
+        _: &mut Window,
+        cx: &mut Context<TableState<Self>>,
+    ) -> impl IntoElement {
+        let row = &self.files[row_ix];
+        let col = &self.columns[col_ix];
+
+        // TODO: where to handle size formatting?
+        // TODO: why does the striping change colors when clicking elements?
+        // TODO: make the columns fill all available space?
+        let child = match col.key.as_ref() {
+            "name" => div()
+                .child(row.settings.name.clone())
+                .truncate()
+                .into_any_element(),
+            // TODO: handle remaining columns.
+            "output-type" => div()
+                .w_full()
+                .child(Select::new(&row.output_type_select))
+                .into_any_element(),
+            "output-format" => div()
+                .w_full()
+                .child(Select::new(&row.output_format_select))
+                .into_any_element(),
+            "compression" => div()
+                .w_full()
+                .child(Select::new(&row.compression_select))
+                .into_any_element(),
+            "mipmaps" => div()
+                .w_full()
+                .child(Select::new(&row.mipmaps_select))
+                .into_any_element(),
+            "remove" => div()
+                .w_full()
+                .child(
+                    Button::new(format!("remove{row_ix}"))
+                        .label("Remove")
+                        .secondary()
+                        .on_click(cx.listener(move |this, _, window, cx| {
+                            this.delegate_mut().files.remove(row_ix);
+                            cx.notify();
+                        })),
+                )
+                .into_any_element(),
+            _ => div().into_any_element(),
+        };
+        div()
+            .size_full()
+            .flex()
+            .items_center()
+            .justify_start()
+            .child(child)
+    }
+
+    fn render_empty(
+        &mut self,
+        _window: &mut Window,
+        _cx: &mut Context<TableState<Self>>,
+    ) -> impl IntoElement {
+        div()
+            .flex()
+            .size_full()
+            .items_center()
+            .justify_center()
+            .child(
+                "Drag and drop image files onto the window or add files using File > Add Files...",
+            )
+    }
+}
+
+struct Application {
+    export_folder: Entity<String>,
+    save_to_original_folder: bool,
+    table_state: Entity<TableState<FilesTableDelegate>>,
+}
+
+impl Application {
+    fn new(window: &mut Window, cx: &mut Context<Self>) -> Self {
+        let export_folder = cx.new(|cx| String::new());
+        let delegate = FilesTableDelegate::new();
+        let table_state = cx.new(|cx| {
+            TableState::new(delegate, window, cx)
+                .col_selectable(false)
+                .col_movable(false)
+                .col_resizable(false)
+        });
+
+        Self {
+            export_folder,
+            table_state,
+            save_to_original_folder: false,
+        }
+    }
+
+    fn on_action_add_files(&mut self, _: &AddFiles, window: &mut Window, cx: &mut Context<Self>) {
+        cx.spawn_in(window, async move |this, cx| {
+            // Await the native OS file picker without blocking the UI thread
+            let file_handle = AsyncFileDialog::new()
+                .set_title("Open File")
+                .add_filter(
+                    "image files",
+                    &["png", "tiff", "nutexb", "bntx", "jpeg", "jpg", "dds"],
+                )
+                .pick_files()
+                .await;
+
+            if let Some(handles) = file_handle {
+                let paths: Vec<_> = handles.iter().map(|h| h.path().to_owned()).collect();
+                // Update view state back on the UI context and notify for re-render
+                this.update_in(cx, |view, window, cx| {
+                    view.table_state.update(cx, |state, cx| {
+                        state.delegate_mut().add_files(&paths, window, cx);
+                    });
+                    cx.notify();
+                })
+                .ok();
+            }
+        })
+        .detach();
+    }
+
+    fn on_action_clear_files(
+        &mut self,
+        _: &ClearFiles,
+        _window: &mut Window,
+        cx: &mut Context<Self>,
+    ) {
+        self.table_state.update(cx, |state, cx| {
+            state.delegate_mut().files.clear();
+            state.clear_selection(cx);
+            state.refresh(cx);
+        });
+        cx.notify();
+    }
+
+    fn on_action_optimize_nutexb_padding(
+        &mut self,
+        _: &OptimizeNutexbPadding,
+        window: &mut Window,
+        cx: &mut Context<Self>,
+    ) {
+        cx.spawn(async |_, _| {
+            // Await the native OS file picker without blocking the UI thread
+            let file_handle = AsyncFileDialog::new()
+                .set_title("Select Nutexb Root Folder")
+                .pick_folder()
+                .await;
+
+            if let Some(handle) = file_handle {
+                let path = handle.path();
+                // TODO: batch process the nutexb files in parallel
+            }
+        })
+        .detach();
+    }
+
+    fn on_action_open_wiki(&mut self, _: &OpenWiki, _window: &mut Window, _cx: &mut Context<Self>) {
+        let _ = open::that("https://github.com/ScanMountGoat/ultimate_tex/wiki");
+    }
+}
+
+// TODO: match the layout from ultimate_tex
+impl Render for Application {
+    fn render(&mut self, _window: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
+        // TODO: padding and spacing
+        v_flex()
+            .size_full()
+            .gap(px(10.0))
+            .p(px(10.0))
+            .on_drop(cx.listener(|this, paths: &ExternalPaths, window, cx| {
+                let files = paths.paths();
+                // TODO: add files asynchronously
+                this.table_state.update(cx, |state, cx| {
+                    state.delegate_mut().add_files(files, window, cx);
+                });
+                cx.notify();
+            }))
+            .on_action(cx.listener(Self::on_action_add_files))
+            .on_action(cx.listener(Self::on_action_clear_files))
+            .on_action(cx.listener(Self::on_action_optimize_nutexb_padding))
+            .on_action(cx.listener(Self::on_action_open_wiki))
+            .child(application_menu())
+            .child(
+                Checkbox::new("save-original-folder")
+                    .label("Save to original folder")
+                    .checked(self.save_to_original_folder)
+                    .on_change(cx.listener(|this, checked, _, cx| {
+                        this.save_to_original_folder = *checked;
+                        cx.notify();
+                    })),
+            )
+            .when(!self.save_to_original_folder, |this| {
+                this.child(
+                    Button::new("select-folder")
+                        .label("Select Folder...")
+                        .secondary()
+                        .w_40()
+                        .on_click(cx.listener(|this, _, window, cx| {
+                            select_output_folder(window, cx);
+                        })),
+                )
+            })
+            .child(Button::new("export").label("Export").primary().w_40())
+            .child(
+                h_flex()
+                    .items_start()
+                    .child(field().label("Output Type").child(
+                        RadioGroup::vertical("output-type").children([
+                            "Png",
+                            "Dds",
+                            "Nutexb",
+                            "Bntx",
+                            "Custom...",
+                        ]),
+                    ))
+                    .child(field().label("Output Format").child(
+                        RadioGroup::vertical("output-format").children([
+                            "Color (sRGB) + Alpha",
+                            "Color (Linear) + Alpha",
+                            "Custom...",
+                        ]),
+                    ))
+                    .child(field().label("Mipmaps").child(
+                        RadioGroup::vertical("mipmaps").children([
+                            "Enabled",
+                            "Disabled",
+                            "Custom...",
+                        ]),
+                    ))
+                    .child(field().label("Compression").child(
+                        RadioGroup::vertical("compression").children([
+                            "Fast",
+                            "Normal",
+                            "Slow",
+                            "Custom...",
+                        ]),
+                    )),
+            )
+            .child(
+                div()
+                    .size_full()
+                    .on_children_prepainted(cx.processor(
+                        |this, child_bounds: Vec<Bounds<Pixels>>, _, cx| {
+                            // Use a workaround to compute a responsive layout.
+                            update_table_column_sizes(this, child_bounds, cx);
+                        },
+                    ))
+                    .child(DataTable::new(&self.table_state).large().stripe(true)),
+            )
+    }
+}
+
+fn select_output_folder(window: &mut Window, cx: &mut Context<Application>) {
+    cx.spawn_in(window, async move |this, cx| {
+        // Await the native OS file picker without blocking the UI thread
+        let file_handle = AsyncFileDialog::new()
+            .set_title("Select Output Folder")
+            .pick_folder()
+            .await;
+
+        if let Some(handle) = file_handle {
+            let path = handle.path().to_path_buf();
+
+            // Update view state back on the UI context and notify for re-render
+            this.update_in(cx, |view, _window, cx| {
+                view.export_folder
+                    .write(cx, path.to_string_lossy().to_string());
+                cx.notify();
+            })
+            .ok();
+        }
+    })
+    .detach();
+}
+
+fn update_table_column_sizes(
+    this: &mut Application,
+    child_bounds: Vec<Bounds<Pixels>>,
+    cx: &mut Context<Application>,
+) {
+    // Compute the size of the table before it is rendered.
+    let table_width = child_bounds[0].size.width;
+    let delegate = this.table_state.read(cx).delegate();
+
+    // Filter out the name column.
+    let name_column_index = 1;
+    let column_widths: Pixels = delegate
+        .columns
+        .iter()
+        .enumerate()
+        .filter_map(|(i, col)| {
+            if i != name_column_index {
+                Some(col.width)
+            } else {
+                None
+            }
+        })
+        .sum();
+    let remaining = table_width - column_widths;
+
+    // Datatable doesn't support responsive layouts like table.
+    // Make the name column fill the remaining space.
+    this.table_state.update(cx, |state, cx| {
+        state.delegate_mut().columns[name_column_index].width = remaining;
+        state.refresh(cx);
+    })
+}
+
+fn application_menu() -> impl IntoElement {
+    h_flex()
+        .child(
+            Button::new("file")
+                .ghost()
+                .label("File")
+                .dropdown_menu(|menu, _window, _cx| {
+                    menu.menu("Add Files...", Box::new(AddFiles))
+                        .menu("Clear Files", Box::new(ClearFiles))
+                }),
+        )
+        .child(
+            Button::new("batch")
+                .ghost()
+                .label("Batch")
+                .dropdown_menu(|menu, _window, _cx| {
+                    menu.menu(
+                        "Optimize Nutexb Padding..,",
+                        Box::new(OptimizeNutexbPadding),
+                    )
+                }),
+        )
+        .child(
+            Button::new("help")
+                .ghost()
+                .label("Help")
+                .dropdown_menu(|menu, _window, _cx| {
+                    menu.menu_with_icon("Wiki", IconName::Github, Box::new(OpenWiki))
+                }),
+        )
+}
+
+fn initialize_themes(cx: &mut App) {
+    // TODO: match theme to existing application
+    // TODO: choose a different background for list even and list active
+    ThemeRegistry::global_mut(cx)
+        .load_themes_from_str(include_str!("themes.json"))
+        .unwrap();
+
+    let theme = ThemeRegistry::global(cx)
+        .themes()
+        .get(&SharedString::from("Ultimate Tex Dark"))
+        .cloned()
+        .unwrap();
+    Theme::update(cx, |current| current.apply_config(&theme));
+}
 
 fn main() {
-    let image = image_dds::image::load_from_memory(include_bytes!("../icons/32x32.png")).unwrap();
-    let icon = Icon::from_rgba(image.into_rgba8().into_raw(), 32, 32).unwrap();
+    application().with_assets(assets::Assets).run(|cx| {
+        init(cx);
 
-    let mut config = Config::new()
-        .with_window(
-            WindowBuilder::new()
-                .with_title(concat!("Ultimate Tex ", env!("CARGO_PKG_VERSION")))
-                .with_window_icon(Some(icon)),
-        )
-        .with_data_directory(
-            // Avoid putting webview files in application directory.
-            ProjectDirs::from("", "", "ultimate_tex")
-                .unwrap()
-                .data_dir(),
-        );
-    if cfg!(not(debug_assertions)) {
-        // Hide the webview menu and developer tools for release builds.
-        config = config.with_menu(None);
-    }
+        initialize_themes(cx);
 
-    LaunchBuilder::desktop().with_cfg(config).launch(app);
-}
-
-fn app() -> Element {
-    // TODO: Is there a better way of managing this state?
-    let mut app = use_signal(App::default);
-    let mut messages = use_signal(Vec::<String>::new);
-    let mut is_file_open = use_signal(|| false);
-    let mut is_batch_open = use_signal(|| false);
-    let mut is_help_open = use_signal(|| false);
-    let mut is_exporting = use_signal(|| false);
-
-    // TODO: Clean up into more components?
-    // Reduced options for global presets.
-    let preset_file_types = [
-        ImageFileType::Png,
-        ImageFileType::Dds,
-        ImageFileType::Nutexb,
-        ImageFileType::Bntx,
-    ];
-    let preset_format_types = [
-        (ImageFormat::BC7RgbaUnormSrgb, "Color (sRGB) + Alpha"),
-        (ImageFormat::BC7RgbaUnorm, "Color (Linear) + Alpha"),
-    ];
-    let preset_mipmap_types = [
-        (Mipmaps::GeneratedAutomatic, "Enabled"),
-        (Mipmaps::Disabled, "Disabled"),
-    ];
-
-    let save_in_same_folder = app.read().settings.save_in_same_folder;
-
-    let override_output_file_type = app.read().settings.overrides.output_file_type;
-    let show_compressed_options = override_output_file_type
-        .map(is_compressed_type)
-        .unwrap_or(true);
-
-    let output_folder_text = app
-        .read()
-        .settings
-        .output_folder
-        .as_ref()
-        .map(|f| f.to_string_lossy().to_string())
-        .unwrap_or("No folder selected".to_string());
-
-    let disable_export = (app.read().settings.output_folder.is_none() && !save_in_same_folder)
-        || *is_exporting.read();
-
-    let add_files = move |_| {
-        is_file_open.set(false);
-
-        spawn({
-            async move {
-                if let Some((new_thumbnails, new_settings)) =
-                    tokio::task::spawn_blocking(pick_files).await.unwrap()
-                {
-                    app.with_mut(|a| {
-                        add_image_files(a, new_thumbnails, new_settings);
-                    });
-                }
-            }
-        });
-    };
-
-    let add_dropped_files = move |files: Vec<FileData>| async move {
-        let paths = files.iter().map(|f| f.path()).collect();
-        let (new_thumbnails, new_settings) = tokio::task::spawn_blocking(move || load_files(paths))
-            .await
-            .unwrap();
-        app.with_mut(|a| {
-            add_image_files(a, new_thumbnails, new_settings);
-        });
-    };
-
-    use_effect(|| {
-        document::eval(
-            r#"
-                zone = document.getElementById("drop-zone");
-                window.addEventListener("dragenter", function(e) {
-                    // Intercept all drop events on a drop zone that fills the window.
-                    zone.style.visibility = "";
-                    zone.style.pointerEvents = "all";
-                });
-
-                zone.addEventListener("drop", function(e) {
-                    // Disable interacting with the drop zone after dropping.
-                    zone.style.visibility = "hidden";
-                    zone.style.pointerEvents = "none";
-                });
-            "#,
-        );
+        let options = WindowOptions {
+            titlebar: Some(TitlebarOptions {
+                title: Some(concat!("Ultimate Tex ", env!("CARGO_PKG_VERSION")).into()),
+                ..Default::default()
+            }),
+            ..Default::default()
+        };
+        open_window(options, cx, |window, cx| {
+            cx.new(|cx| Application::new(window, cx))
+        })
+        .unwrap();
     });
-
-    let export_files = move |_| {
-        spawn({
-            async move {
-                is_exporting.set(true);
-
-                // The app doesn't store image data, so this clone is cheap.
-                let app = app.read().clone();
-                let new_messages =
-                    tokio::task::spawn_blocking(move || app.convert_and_export_files().unwrap())
-                        .await
-                        .unwrap();
-
-                *messages.write() = new_messages;
-                is_exporting.set(false);
-            }
-        });
-    };
-
-    const PICO_CSS: &'static str = include_str!("pico.min.css");
-    const APP_CSS: &'static str = include_str!("app.css");
-
-    rsx! {
-        style { {PICO_CSS} }
-        style { {APP_CSS} }
-
-        nav {
-            ul {
-                li {
-                    details { role: "list", dir: "ltr", open: "{is_file_open}",
-                        summary {
-                            aria_haspopup: "listbox",
-                            role: "link",
-                            onclick: move |_| {
-                                is_file_open.set(true);
-                            },
-                            "File"
-                        }
-                        ul { role: "listbox",
-                            li { onclick: add_files, "Add Files..." }
-                            li {
-                                onclick: move |_| {
-                                    app.with_mut(|a| a.clear_files());
-                                    is_file_open.set(false);
-                                },
-                                "Clear Files..."
-                            }
-                        }
-                    }
-                }
-                li {
-                    details { role: "list", dir: "ltr", open: "{is_batch_open}",
-                        summary {
-                            aria_haspopup: "listbox",
-                            role: "link",
-                            onclick: move |_| {
-                                is_batch_open.set(true);
-                            },
-                            "Batch"
-                        }
-                        ul { role: "listbox",
-                            li {
-                                onclick: move |_| {
-                                    optimize_nutexb_files();
-                                    is_batch_open.set(false);
-                                },
-                                "Optimize Nutexb Padding..."
-                            }
-                        }
-                    }
-                }
-                li {
-                    details { role: "list", dir: "ltr", open: "{is_help_open}",
-                        summary {
-                            aria_haspopup: "listbox",
-                            role: "link",
-                            onclick: move |_| {
-                                is_help_open.set(true);
-                            },
-                            "Help"
-                        }
-                        ul { role: "listbox",
-                            li {
-                                onclick: move |_| {
-                                    is_help_open.set(false);
-                                    let _ = open::that("https://github.com/ScanMountGoat/ultimate_tex/wiki");
-                                },
-                                "Wiki"
-                            }
-                        }
-                    }
-                }
-            }
-        }
-        hr {}
-
-        label {
-            input {
-                r#type: "checkbox",
-                checked: "{save_in_same_folder}",
-                onchange: move |e| {
-                    app.with_mut(|a| a.settings.save_in_same_folder = e.value().parse().unwrap());
-                },
-            }
-            "Save to original folder"
-        }
-        if !save_in_same_folder {
-            // TODO: use an input with type directory instead?
-            div { class: "grid-horizontal",
-                button {
-                    style: "width: auto;",
-                    class: "secondary",
-                    onclick: move |_| {
-                        if let Some(folder) = FileDialog::new()
-                            .set_title("Select Output Folder")
-                            .pick_folder()
-                        {
-                            app.with_mut(|a| a.settings.output_folder = Some(folder));
-                        }
-                    },
-                    "Select Folder..."
-                }
-                div { class: "message-text", "{output_folder_text}" }
-            }
-        }
-        div { class: "grid-horizontal",
-            button {
-                style: "width: 150px;",
-                disabled: disable_export,
-                onclick: export_files,
-                "Export"
-            }
-            for message in messages.read().iter() {
-                div { class: "message-text", "{message}" }
-            }
-        }
-        hr {}
-
-        div { class: "flex-container",
-            fieldset {
-                legend {
-                    strong { "Output Type" }
-                }
-                for option in preset_file_types {
-                    label { r#for: "outputType{option}",
-                        input {
-                            r#type: "radio",
-                            id: "outputType{option}",
-                            name: "outputType",
-                            value: "{option}",
-                            checked: override_output_file_type == Some(option),
-                            oninput: move |e| {
-                                app.with_mut(|a| {
-                                    a.settings.overrides.output_file_type = Some(e.value().parse().unwrap());
-                                });
-                            },
-                        }
-                        "{option}"
-                    }
-                }
-                label { r#for: "outputTypeNull",
-                    input {
-                        r#type: "radio",
-                        id: "outputTypeNull",
-                        name: "outputType",
-                        value: "",
-                        checked: override_output_file_type.is_none(),
-                        oninput: move |_| {
-                            app.with_mut(|a| a.settings.overrides.output_file_type = None);
-                        },
-                    }
-                    "Custom..."
-                }
-            }
-
-            if show_compressed_options {
-                fieldset {
-                    legend {
-                        strong { "Output Format" }
-                    }
-                    for (option , option_name) in preset_format_types {
-                        label { r#for: "outputFormat{option}",
-                            input {
-                                r#type: "radio",
-                                id: "outputFormat{option}",
-                                name: "outputFormat",
-                                value: "{option}",
-                                checked: app.read().settings.overrides.output_format == Some(option),
-                                oninput: move |e| {
-                                    app.with_mut(|a| {
-                                        a.settings.overrides.output_format = Some(e.value().parse().unwrap());
-                                    });
-                                },
-                            }
-                            {option_name}
-                        }
-                    }
-                    label { r#for: "outputFormatNull",
-                        input {
-                            r#type: "radio",
-                            id: "outputFormatNull",
-                            name: "outputFormat",
-                            value: "",
-                            checked: app.read().settings.overrides.output_format.is_none(),
-                            oninput: move |_| {
-                                app.with_mut(|a| a.settings.overrides.output_format = None);
-                            },
-                        }
-                        "Custom..."
-                    }
-                }
-                fieldset {
-                    legend {
-                        strong { "Mipmaps" }
-                    }
-                    for (option , option_name) in preset_mipmap_types {
-                        label { r#for: "mipmaps{option}",
-                            input {
-                                r#type: "radio",
-                                id: "mipmaps{option}",
-                                name: "mipmaps",
-                                value: "{option}",
-                                checked: app.read().settings.overrides.mipmaps == Some(option),
-                                oninput: move |e| {
-                                    app.with_mut(|a| {
-                                        a.settings.overrides.mipmaps = Some(e.value().parse().unwrap());
-                                    });
-                                },
-                            }
-                            {option_name}
-                        }
-                    }
-                    label { r#for: "mipmapsNull",
-                        input {
-                            r#type: "radio",
-                            id: "mipmapsNull",
-                            name: "mipmaps",
-                            value: "",
-                            checked: app.read().settings.overrides.mipmaps.is_none(),
-                            oninput: move |_| {
-                                app.with_mut(|a| a.settings.overrides.mipmaps = None);
-                            },
-                        }
-                        "Custom..."
-                    }
-                }
-                fieldset {
-                    legend {
-                        strong { "Compression" }
-                    }
-                    for option in Quality::iter() {
-                        label { r#for: "compression{option}",
-                            input {
-                                r#type: "radio",
-                                id: "compression{option}",
-                                name: "compression",
-                                value: "{option}",
-                                checked: app.read().settings.overrides.output_quality == Some(option),
-                                oninput: move |e| {
-                                    app.with_mut(|a| {
-                                        a.settings.overrides.output_quality = Some(e.value().parse().unwrap());
-                                    });
-                                },
-                            }
-                            "{option}"
-                        }
-                    }
-                    label { r#for: "compressionNull",
-                        input {
-                            r#type: "radio",
-                            id: "compressionNull",
-                            name: "compression",
-                            value: "",
-                            checked: app.read().settings.overrides.output_quality.is_none(),
-                            oninput: move |_| {
-                                app.with_mut(|a| a.settings.overrides.output_quality = None);
-                            },
-                        }
-                        "Custom..."
-                    }
-                }
-            }
-        }
-
-        figure {
-            table { role: "grid",
-                thead {
-                    tr {
-                        th { scope: "col",
-                            strong { "Image" }
-                        }
-                        th { scope: "col",
-                            strong { "Name" }
-                        }
-                        th { scope: "col",
-                            strong { "Format" }
-                        }
-                        th { scope: "col",
-                            strong { "Size" }
-                        }
-                        th { scope: "col",
-                            strong { "Output Type" }
-                        }
-                        th { scope: "col",
-                            strong { "Output Format" }
-                        }
-                        th { scope: "col",
-                            strong { "Compression" }
-                        }
-                        th { scope: "col",
-                            strong { "Mipmaps" }
-                        }
-                        th {}
-                    }
-                }
-                tbody {
-                    for (i , item) in app.read().settings.file_settings.iter().enumerate() {
-                        tr { key: "{item.name}",
-                            td {
-                                img { src: "{app.read().png_thumbnails[i]}" }
-                            }
-                            td { "{item.name}" }
-                            td { "{item.format}" }
-                            td { "{item.dimensions.0}x{item.dimensions.1}x{item.dimensions.2}" }
-                            td {
-                                match override_output_file_type {
-                                    Some(ty) => rsx! { "{ty}" },
-                                    None => rsx! {
-                                        select {
-                                            onchange: move |e| {
-                                                app.with_mut(|a| {
-                                                    a.settings.file_settings[i].output_file_type = e.value().parse().unwrap();
-                                                });
-                                            },
-                                            for variant in ImageFileType::iter() {
-                                                option { selected: item.output_file_type == variant, value: "{variant}", "{variant}" }
-                                            }
-                                        }
-                                    },
-                                }
-                            }
-                            td {
-                                match app.read().settings.overrides.output_format {
-                                    Some(ty) => rsx! { "{ty}" },
-                                    None => rsx! {
-                                        select {
-                                            disabled: !is_compressed_type(override_output_file_type.unwrap_or(item.output_file_type)),
-                                            onchange: move |e| {
-                                                app.with_mut(|a| {
-                                                    a.settings.file_settings[i].output_format = e.value().parse().unwrap();
-                                                });
-                                            },
-                                            for variant in ImageFormat::iter() {
-                                                option { selected: item.output_format == variant, value: "{variant}", "{variant}" }
-                                            }
-                                        }
-                                    },
-                                }
-                            }
-                            td {
-                                match app.read().settings.overrides.output_quality {
-                                    Some(ty) => rsx! { "{ty}" },
-                                    None => rsx! {
-                                        select {
-                                            disabled: !is_compressed_type(override_output_file_type.unwrap_or(item.output_file_type)),
-                                            onchange: move |e| {
-                                                app.with_mut(|a| {
-                                                    a.settings.file_settings[i].output_quality = e.value().parse().unwrap();
-                                                });
-                                            },
-                                            for variant in Quality::iter() {
-                                                option { selected: item.output_quality == variant, value: "{variant}", "{variant}" }
-                                            }
-                                        }
-                                    },
-                                }
-                            }
-                            td {
-                                match app.read().settings.overrides.mipmaps {
-                                    Some(ty) => rsx! { "{ty}" },
-                                    None => rsx! {
-                                        select {
-                                            disabled: !is_compressed_type(override_output_file_type.unwrap_or(item.output_file_type)),
-                                            onchange: move |e| {
-                                                app.with_mut(|a| {
-                                                    a.settings.file_settings[i].output_mipmaps = e.value().parse().unwrap();
-                                                });
-                                            },
-                                            for variant in Mipmaps::iter() {
-                                                option { selected: item.output_mipmaps == variant, value: "{variant}", "{variant}" }
-                                            }
-                                        }
-                                    },
-                                }
-                            }
-                            td {
-                                button {
-                                    class: "secondary",
-                                    onclick: move |_| {
-                                        app.with_mut(|a| a.remove_file(i));
-                                    },
-                                    "Remove"
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        }
-        if app.read().settings.file_settings.is_empty() {
-            div { class: "centered-text",
-                if cfg!(windows) {
-                    // TODO: fix drag and drop on windows.
-                    "Add files using File > Add Files..."
-                } else {
-                    "Drag and drop image files onto the window or add files using File > Add Files..."
-                }
-            }
-        }
-        div {
-            id: "drop-zone",
-            class: "drop-zone",
-            ondrop: move |e| async move {
-                let files = e.data_transfer().files();
-                add_dropped_files(files).await;
-            },
-        }
-    }
-}
-
-fn add_image_files(
-    a: &mut App,
-    new_thumbnails: Vec<String>,
-    new_settings: Vec<app::ImageFileSettings>,
-) {
-    // Prevent adding duplicate paths.
-    for (thumbnail, settings) in new_thumbnails.into_iter().zip(new_settings) {
-        if !a
-            .settings
-            .file_settings
-            .iter()
-            .any(|t| t.name == settings.name)
-        {
-            a.png_thumbnails.push(thumbnail);
-            a.settings.file_settings.push(settings);
-        }
-    }
-}
-
-fn is_compressed_type(ty: ImageFileType) -> bool {
-    ty != ImageFileType::Png && ty != ImageFileType::Tiff
 }

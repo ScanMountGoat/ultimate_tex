@@ -28,7 +28,7 @@ Bntx:
 A library for conversion functionality shared between the GUI and CLI programs.
 
 ## Building
-With a newer version of the Rust toolchain installed, run `cargo build --release`. Don't forget the `--release` since debug builds in Rust will run slowly. Build and run the application with `cargo run --release -p ultimate_tex`. See the GitHub Actions scripts for installing the necessary Linux packages. image_dds uses precompiled kernels for encoding BCN image formats, so not all platforms and architectures are supported. 
+With a newer version of the Rust toolchain installed, run `cargo build --release`. Don't forget the `--release` since debug builds in Rust will run slowly. Build and run the application with `cargo run --release -p ultimate_tex`. image_dds uses precompiled kernels for encoding BCN image formats, so not all platforms and architectures are supported. 
 
 ## Credits
 - [nutexb](https://github.com/jam1garner/nutexb)

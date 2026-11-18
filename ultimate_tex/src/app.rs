@@ -3,7 +3,6 @@ use std::{
     path::{Path, PathBuf},
 };
 
-use base64::prelude::*;
 use image_dds::{ImageFormat, Mipmaps, Quality, image::codecs::png::PngEncoder};
 use rayon::prelude::*;
 use rfd::FileDialog;
@@ -34,7 +33,7 @@ pub struct FileSettingsOverrides {
 
 #[derive(Clone)]
 pub struct ImageFileSettings {
-    pub name: String,
+    pub name: String, // TODO: SharedString
     pub path: PathBuf,
     pub format: ImageFormat,
     pub dimensions: (u32, u32, u32),
@@ -107,14 +106,14 @@ pub fn pick_files() -> Option<(Vec<String>, Vec<ImageFileSettings>)> {
         )
         .pick_files()
     {
-        let (new_thumbnails, new_settings) = load_files(files);
+        let (new_thumbnails, new_settings) = load_files(&files);
         Some((new_thumbnails, new_settings))
     } else {
         None
     }
 }
 
-pub fn load_files(files: Vec<PathBuf>) -> (Vec<String>, Vec<ImageFileSettings>) {
+pub fn load_files(files: &[PathBuf]) -> (Vec<String>, Vec<ImageFileSettings>) {
     let start = std::time::Instant::now();
 
     // Only the expensive file reading benefits from parallelism.
@@ -123,6 +122,7 @@ pub fn load_files(files: Vec<PathBuf>) -> (Vec<String>, Vec<ImageFileSettings>) 
         .par_iter()
         .filter_map(|file| Some((file, ImageFile::from_file(file).ok()?)))
         .collect();
+    // TODO: rework thumbnails to use images supported by gpui
     let new_thumbnails: Vec<_> = new_files
         .par_iter()
         .map(|(_, image)| encode_png_base64(image))
@@ -147,7 +147,8 @@ fn encode_png_base64(f: &ImageFile) -> String {
     let encoder = PngEncoder::new(&mut png_bytes);
     image.write_with_encoder(encoder).unwrap();
 
-    "data:image/png;base64,".to_string() + &BASE64_STANDARD.encode(png_bytes)
+    // TODO: change thumbnail generation
+    "data:image/png;base64,".to_string()
 }
 
 impl Default for FileSettingsOverrides {
