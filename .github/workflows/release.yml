@@ -13,18 +13,15 @@ jobs:
     runs-on: windows-latest
     steps:
     - uses: actions/checkout@v6
-    - uses: cargo-bins/cargo-binstall@main
-    - name: Install dioxus-cli
-      run: cargo binstall dioxus-cli --version 0.7.3
     - name: Build
       working-directory: ./ultimate_tex
-      run: dx build --release --desktop
+      run: cargo build --release
     - name: Set Icon
       run: |
         curl.exe -sSL "https://github.com/electron/rcedit/releases/download/v2.0.0/rcedit-x64.exe" -o rcedit.exe
-        .\rcedit.exe target/dx/ultimate_tex/release/windows/app/ultimate_tex.exe --set-icon ultimate_tex/icons/icon.ico
+        .\rcedit.exe target/release/ultimate_tex.exe --set-icon ultimate_tex/icons/icon.ico
     - name: Create Zip
-      run: Compress-Archive -path target/dx/ultimate_tex/release/windows/app/ultimate_tex.exe -destinationPath ultimate_tex_win_x64.zip
+      run: Compress-Archive -path target/release/ultimate_tex.exe -destinationPath ultimate_tex_win_x64.zip
     - name: Upload Zip
       uses: actions/upload-artifact@v7
       with:
@@ -55,14 +52,16 @@ jobs:
         toolchain: stable
         targets: ${{matrix.target}}
     - uses: cargo-bins/cargo-binstall@main
-    - name: Install dioxus-cli
-      run: cargo binstall dioxus-cli --version 0.7.3
+    - name: Install cargo-bundle
+      run: cargo binstall cargo-bundle --version 0.7.3
     - name: Bundle
       working-directory: ./ultimate_tex
-      run: dx bundle --release --package-types macos --target ${{matrix.target}}
+      run: cargo bundle --release --format osx --target ${{matrix.target}}
+    - name: Sign Binaries
+      run: codesign -s - target/${{matrix.target}}/release/bundle/osx/ultimate_tex.app
     - name: Create Zip
       run: |
-        cp -r target/dx/ultimate_tex/bundle/macos/bundle/macos/UltimateTex.app ultimate_tex.app
+        cp -r target/${{matrix.target}}/release/bundle/osx/ultimate_tex.app ultimate_tex.app
         zip -r ultimate_tex_macos_${{matrix.desc}}.zip ultimate_tex.app
     - name: Upload Zip
       uses: actions/upload-artifact@v7
@@ -81,26 +80,14 @@ jobs:
     runs-on: ubuntu-22.04
     steps:
     - uses: actions/checkout@v6
-    - name: Install Ubuntu Dependencies
-      run: |
-        sudo apt update
-        sudo apt install libwebkit2gtk-4.1-dev \
-          build-essential \
-          curl \
-          wget \
-          file \
-          libxdo-dev \
-          libssl-dev \
-          libayatana-appindicator3-dev \
-          librsvg2-dev
     - uses: cargo-bins/cargo-binstall@main
-    - name: Install dioxus-cli
-      run: cargo binstall dioxus-cli --version 0.7.3
-    - name: Build
+    - name: Install cargo-bundle
+      run: cargo binstall cargo-bundle --version 0.7.3
+    - name: Bundle
       working-directory: ./ultimate_tex
-      run: cargo rustc --release -- -C link-args=-lstdc++
+      run: cargo bundle --release --format appimage --target ${{matrix.target}}
     - name: Create Zip
-      run: zip -j ultimate_tex_linux_x64.zip target/release/ultimate_tex
+      run: zip -j ultimate_tex_linux_x64.zip target/release/bundle/linux/ultimate_tex.appimage
     - name: Upload Zip
       uses: actions/upload-artifact@v7
       with:

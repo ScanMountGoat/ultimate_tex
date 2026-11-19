@@ -12,3 +12,7 @@ image_dds = { workspace = true, features = ["ddsfile", "image", "serde"] }
 rayon = "1.7.0"
 globwalk = "0.9.1"
 strum.workspace = true
+
+[package.metadata.bundle]
+identifier = "ssbh_editor"
+icon = ["icons/UltimateTexIcon.svg"]
