@@ -1,4 +1,4 @@
-use std::path::PathBuf;
+use std::{path::PathBuf, sync::Arc};
 
 use gpui_kit::{
     base::{IndexPath, h_flex, v_flex},
@@ -7,9 +7,9 @@ use gpui_kit::{
         button::{Button, ButtonVariants},
         checkbox::Checkbox,
         menu::DropdownMenu,
-        radio::RadioGroup,
         select::{Select, SelectItem, SelectState},
         table::{Column, DataTable, TableDelegate, TableState},
+        tooltip::Tooltip,
     },
     prelude::FluentBuilder,
     *,
@@ -50,6 +50,7 @@ where
 
 struct File {
     settings: ImageFileSettings,
+    thumbnail: Arc<RenderImage>,
     output_type_select: Entity<SelectState<Vec<EnumSelectItem<ImageFileType>>>>,
     output_format_select: Entity<SelectState<Vec<EnumSelectItem<image_dds::ImageFormat>>>>,
     compression_select: Entity<SelectState<Vec<EnumSelectItem<image_dds::Quality>>>>,
@@ -67,9 +68,8 @@ impl FilesTableDelegate {
             files: Vec::new(),
             columns: vec![
                 Column::new("image", "Image"),
-                Column::new("name", "Name"),
-                Column::new("format", "Format"),
-                Column::new("size", "Size"),
+                Column::new("format", "Format").width(px(200.0)),
+                Column::new("size", "Size").width(px(150.0)),
                 Column::new("output-type", "Output Type").width(px(150.0)),
                 Column::new("output-format", "Output Format").width(px(200.0)),
                 Column::new("compression", "Compression").width(px(150.0)),
@@ -86,29 +86,35 @@ impl FilesTableDelegate {
         let (thumbnails, settings) = load_files(paths);
 
         // TODO: set the selects to update the settings.
-        self.files.extend(settings.into_iter().map(|settings| {
-            let output_format_select =
-                cx.new(|cx| enum_select_state(settings.output_format, window, cx));
-            let compression_select =
-                cx.new(|cx| enum_select_state(settings.output_quality, window, cx));
-            let mipmaps_select =
-                cx.new(|cx| enum_select_state(settings.output_mipmaps, window, cx));
-            File {
-                settings,
-                output_type_select: cx.new(|cx| {
-                    let variants = vec![
-                        EnumSelectItem(ImageFileType::Png),
-                        EnumSelectItem(ImageFileType::Dds),
-                        EnumSelectItem(ImageFileType::Nutexb),
-                        EnumSelectItem(ImageFileType::Bntx),
-                    ];
-                    SelectState::new(variants, Some(IndexPath::new(0)), window, cx)
+        self.files.extend(
+            settings
+                .into_iter()
+                .zip(thumbnails)
+                .map(|(settings, thumbnail)| {
+                    let output_format_select =
+                        cx.new(|cx| enum_select_state(settings.output_format, window, cx));
+                    let compression_select =
+                        cx.new(|cx| enum_select_state(settings.output_quality, window, cx));
+                    let mipmaps_select =
+                        cx.new(|cx| enum_select_state(settings.output_mipmaps, window, cx));
+                    File {
+                        settings,
+                        thumbnail,
+                        output_type_select: cx.new(|cx| {
+                            let variants = vec![
+                                EnumSelectItem(ImageFileType::Png),
+                                EnumSelectItem(ImageFileType::Dds),
+                                EnumSelectItem(ImageFileType::Nutexb),
+                                EnumSelectItem(ImageFileType::Bntx),
+                            ];
+                            SelectState::new(variants, Some(IndexPath::new(0)), window, cx)
+                        }),
+                        output_format_select,
+                        compression_select,
+                        mipmaps_select,
+                    }
                 }),
-                output_format_select,
-                compression_select,
-                mipmaps_select,
-            }
-        }));
+        );
     }
 }
 
@@ -150,15 +156,40 @@ impl TableDelegate for FilesTableDelegate {
         let row = &self.files[row_ix];
         let col = &self.columns[col_ix];
 
-        // TODO: where to handle size formatting?
-        // TODO: why does the striping change colors when clicking elements?
-        // TODO: make the columns fill all available space?
+        let thumbnail = row.thumbnail.clone();
         let child = match col.key.as_ref() {
-            "name" => div()
+            "image" => h_flex()
+                .size_full()
+                .gap(px(10.0))
+                .child(
+                    div()
+                        .h_full()
+                        .aspect_square()
+                        .overflow_hidden()
+                        .child(
+                            img(thumbnail.clone())
+                                .size_full()
+                                .object_fit(ObjectFit::Fill), // TODO: fix for cube or non square
+                        )
+                        .id(format!("thumbnail{row_ix}"))
+                        .tooltip(move |window, cx| {
+                            let thumbnail = thumbnail.clone();
+                            Tooltip::element(move |_, _| img(thumbnail.clone()).h(px(256.0)))
+                                .build(window, cx)
+                        }),
+                )
                 .child(row.settings.name.clone())
                 .truncate()
                 .into_any_element(),
-            // TODO: handle remaining columns.
+            "format" => div()
+                .child(row.settings.format.to_string())
+                .into_any_element(),
+            "size" => div()
+                .child(format!(
+                    "{}x{}x{}",
+                    row.settings.dimensions.0, row.settings.dimensions.1, row.settings.dimensions.2
+                ))
+                .into_any_element(),
             "output-type" => div()
                 .w_full()
                 .child(Select::new(&row.output_type_select))
@@ -181,7 +212,7 @@ impl TableDelegate for FilesTableDelegate {
                     Button::new(format!("remove{row_ix}"))
                         .label("Remove")
                         .secondary()
-                        .on_click(cx.listener(move |this, _, window, cx| {
+                        .on_click(cx.listener(move |this, _, _window, cx| {
                             this.delegate_mut().files.remove(row_ix);
                             cx.notify();
                         })),
@@ -222,7 +253,7 @@ struct Application {
 
 impl Application {
     fn new(window: &mut Window, cx: &mut Context<Self>) -> Self {
-        let export_folder = cx.new(|cx| String::new());
+        let export_folder = cx.new(|_cx| String::new());
         let delegate = FilesTableDelegate::new();
         let table_state = cx.new(|cx| {
             TableState::new(delegate, window, cx)
@@ -230,7 +261,7 @@ impl Application {
                 .col_movable(false)
                 .col_resizable(false)
         });
-        let overrides = cx.new(|cx| FileSettingsOverrides::default());
+        let overrides = cx.new(|_cx| FileSettingsOverrides::default());
 
         Self {
             export_folder,
@@ -284,7 +315,7 @@ impl Application {
     fn on_action_optimize_nutexb_padding(
         &mut self,
         _: &OptimizeNutexbPadding,
-        window: &mut Window,
+        _window: &mut Window,
         cx: &mut Context<Self>,
     ) {
         cx.spawn(async |_, _| {
@@ -295,15 +326,15 @@ impl Application {
                 .await;
 
             if let Some(handle) = file_handle {
-                let path = handle.path();
+                let _path = handle.path();
                 // TODO: batch process the nutexb files in parallel
             }
         })
         .detach();
     }
 
-    fn on_action_open_wiki(&mut self, _: &OpenWiki, _window: &mut Window, _cx: &mut Context<Self>) {
-        let _ = open::that("https://github.com/ScanMountGoat/ultimate_tex/wiki");
+    fn on_action_open_wiki(&mut self, _: &OpenWiki, _window: &mut Window, cx: &mut Context<Self>) {
+        cx.open_url("https://github.com/ScanMountGoat/ultimate_tex/wiki");
     }
 }
 
@@ -343,7 +374,7 @@ impl Render for Application {
                         .label("Select Folder...")
                         .secondary()
                         .w_40()
-                        .on_click(cx.listener(|this, _, window, cx| {
+                        .on_click(cx.listener(|_this, _, window, cx| {
                             select_output_folder(window, cx);
                         })),
                 )
@@ -397,7 +428,7 @@ fn update_table_column_sizes(
     let delegate = this.table_state.read(cx).delegate();
 
     // Filter out the name column.
-    let name_column_index = 1;
+    let name_column_index = 0;
     let column_widths: Pixels = delegate
         .columns
         .iter()
@@ -454,7 +485,6 @@ fn application_menu() -> impl IntoElement {
 
 fn initialize_themes(cx: &mut App) {
     // TODO: match theme to existing application
-    // TODO: choose a different background for list even and list active
     ThemeRegistry::global_mut(cx)
         .load_themes_from_str(include_str!("themes.json"))
         .unwrap();

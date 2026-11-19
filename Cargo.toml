@@ -2,7 +2,10 @@
 members = ["ultimate_tex_lib", "ultimate_tex_cli", "ultimate_tex"]
 resolver = "3"
 
-[profile]
+[workspace.dependencies]
+image = "0.25.5"
+image_dds = "0.7.0"
+strum = { version = "0.26.3", features = ["derive"] }
 
 [profile.wasm-dev]
 inherits = "dev"

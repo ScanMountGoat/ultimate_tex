@@ -6,7 +6,7 @@ edition = "2024"
 [dependencies]
 nutexb = { git = "https://github.com/jam1garner/nutexb", features = ["ddsfile"], rev = "e082573" }
 bntx = { git = "https://github.com/ScanMountGoat/bntx", rev = "87fffc7" }
-image_dds = "0.7.0"
-image = "0.25.5"
-strum = { version = "0.26.3", features = ["derive"] }
+image_dds.workspace = true
+image.workspace = true
+strum.workspace = true
 anyhow = "1.0"

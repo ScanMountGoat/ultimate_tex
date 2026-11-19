@@ -1,9 +1,11 @@
 use std::{
     error::Error,
     path::{Path, PathBuf},
+    sync::Arc,
 };
 
-use image_dds::{ImageFormat, Mipmaps, Quality, image::codecs::png::PngEncoder};
+use gpui_kit::RenderImage;
+use image_dds::{ImageFormat, Mipmaps, Quality, image::Frame};
 use rayon::prelude::*;
 use rfd::FileDialog;
 use ultimate_tex_lib::{ImageFile, NutexbFile};
@@ -42,13 +44,13 @@ pub fn convert_and_export_files(
             let output = if save_in_same_folder {
                 settings.path.parent()
             } else {
-                output_folder.as_deref()
+                output_folder
             };
 
             output.and_then(|output| {
                 // Collect error messages to display to the user.
                 let file = ImageFile::from_file(&settings.path).ok()?;
-                match convert_and_save_file(output, settings, &file, &overrides) {
+                match convert_and_save_file(output, settings, &file, overrides) {
                     Ok(_) => None,
                     Err(e) => Some(format!("Error converting {}: {e}", settings.name)),
                 }
@@ -69,23 +71,7 @@ pub fn convert_and_export_files(
     Ok(messages)
 }
 
-pub fn pick_files() -> Option<(Vec<String>, Vec<ImageFileSettings>)> {
-    // Don't modify app directly to make it easy to run in a background thread.
-    if let Some(files) = FileDialog::new()
-        .add_filter(
-            "image files",
-            &["png", "tiff", "nutexb", "bntx", "jpeg", "jpg", "dds"],
-        )
-        .pick_files()
-    {
-        let (new_thumbnails, new_settings) = load_files(&files);
-        Some((new_thumbnails, new_settings))
-    } else {
-        None
-    }
-}
-
-pub fn load_files(files: &[PathBuf]) -> (Vec<String>, Vec<ImageFileSettings>) {
+pub fn load_files(files: &[PathBuf]) -> (Vec<Arc<RenderImage>>, Vec<ImageFileSettings>) {
     let start = std::time::Instant::now();
 
     // Only the expensive file reading benefits from parallelism.
@@ -97,7 +83,7 @@ pub fn load_files(files: &[PathBuf]) -> (Vec<String>, Vec<ImageFileSettings>) {
     // TODO: rework thumbnails to use images supported by gpui
     let new_thumbnails: Vec<_> = new_files
         .par_iter()
-        .map(|(_, image)| encode_png_base64(image))
+        .map(|(_, image)| create_render_image(image))
         .collect();
 
     let new_settings = new_files
@@ -109,34 +95,31 @@ pub fn load_files(files: &[PathBuf]) -> (Vec<String>, Vec<ImageFileSettings>) {
     (new_thumbnails, new_settings)
 }
 
-fn encode_png_base64(f: &ImageFile) -> String {
-    // Convert to an html compatible format.
+fn create_render_image(f: &ImageFile) -> Arc<RenderImage> {
+    // Convert to a gpui compatible format.
     let mut image = f.to_image().unwrap();
-    // Disable alpha for better display of PRM and NOR.
-    image.pixels_mut().for_each(|p| p[3] = 255u8);
+    image.pixels_mut().for_each(|p| {
+        // gpui expects BGRA instead of RGBA.
+        p.0.swap(0, 2);
+        // Disable alpha for better display of PRM and NOR.
+        p[3] = 255u8;
+    });
 
-    let mut png_bytes = Vec::new();
-    let encoder = PngEncoder::new(&mut png_bytes);
-    image.write_with_encoder(encoder).unwrap();
-
-    // TODO: change thumbnail generation
-    "data:image/png;base64,".to_string()
+    let frame = Frame::new(image);
+    Arc::new(RenderImage::new([frame]))
 }
 
 #[derive(PartialEq, Clone, Copy, strum::Display, strum::EnumIter, strum::EnumString)]
+#[derive(Default)]
 pub enum ImageFileType {
     Dds,
+    #[default]
     Png,
     Tiff,
     Nutexb,
     Bntx,
 }
 
-impl Default for ImageFileType {
-    fn default() -> Self {
-        Self::Png
-    }
-}
 
 impl ImageFileType {
     fn extension(&self) -> &'static str {

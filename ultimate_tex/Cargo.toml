@@ -6,10 +6,9 @@ edition = "2024"
 
 [dependencies]
 gpui-kit = "0.10.0"
-open = "5.4.5"
 rfd = "0.18.0"
 ultimate_tex_lib = { path = "../ultimate_tex_lib" }
-image_dds = { version = "0.7.0", features = ["ddsfile", "image", "serde"] }
+image_dds = { workspace = true, features = ["ddsfile", "image", "serde"] }
 rayon = "1.7.0"
 globwalk = "0.9.1"
-strum = { version = "0.26.3", features = ["derive"] }
+strum.workspace = true

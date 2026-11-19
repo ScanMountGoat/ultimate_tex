@@ -72,7 +72,7 @@ impl Default for FileSettingsOverrides {
 impl Render for FileSettingsOverrides {
     fn render(
         &mut self,
-        window: &mut gpui_kit::Window,
+        _window: &mut gpui_kit::Window,
         cx: &mut gpui_kit::prelude::Context<Self>,
     ) -> impl gpui_kit::prelude::IntoElement {
         // Show options that override individual file settings.
@@ -93,7 +93,7 @@ impl Render for FileSettingsOverrides {
                                 .iter()
                                 .position(|v| v == &self.output_file_type),
                         )
-                        .on_change(cx.listener(|this, index, _window, cx| {
+                        .on_change(cx.listener(|this, index, _window, _cx| {
                             if let Some(new_value) = FileSettingsOverrides::OUTPUT_TYPES.get(*index)
                             {
                                 this.output_file_type = *new_value;
@@ -111,7 +111,7 @@ impl Render for FileSettingsOverrides {
                                     .iter()
                                     .position(|v| v == &self.output_format),
                             )
-                            .on_change(cx.listener(|this, index, _window, cx| {
+                            .on_change(cx.listener(|this, index, _window, _cx| {
                                 if let Some(new_value) =
                                     FileSettingsOverrides::OUTPUT_FORMATS.get(*index)
                                 {
@@ -129,7 +129,7 @@ impl Render for FileSettingsOverrides {
                                     .iter()
                                     .position(|v| v == &self.mipmaps),
                             )
-                            .on_change(cx.listener(|this, index, _window, cx| {
+                            .on_change(cx.listener(|this, index, _window, _cx| {
                                 if let Some(new_value) = FileSettingsOverrides::MIPMAPS.get(*index)
                                 {
                                     this.mipmaps = *new_value;
@@ -148,7 +148,7 @@ impl Render for FileSettingsOverrides {
                                     .iter()
                                     .position(|v| v == &self.output_quality),
                             )
-                            .on_change(cx.listener(|this, index, _window, cx| {
+                            .on_change(cx.listener(|this, index, _window, _cx| {
                                 if let Some(new_value) =
                                     FileSettingsOverrides::QUALITIES.get(*index)
                                 {
