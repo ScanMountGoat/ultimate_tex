@@ -27,7 +27,7 @@ mod overrides;
 
 actions!(
     ultimate_tex,
-    [AddFiles, ClearFiles, OptimizeNutexbPadding, OpenWiki]
+    [AddFiles, ClearFiles, OptimizeNutexbPadding, OpenWiki, Quit]
 );
 
 #[derive(Clone)]
@@ -500,6 +500,11 @@ fn initialize_themes(cx: &mut App) {
 fn main() {
     application().with_assets(assets::Assets).run(|cx| {
         init(cx);
+
+        cx.bind_keys([KeyBinding::new("cmd-q", Quit, None)]);
+        cx.on_action(|_: &Quit, cx| {
+            cx.quit();
+        });
 
         initialize_themes(cx);
 
