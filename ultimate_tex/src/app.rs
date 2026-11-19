@@ -8,28 +8,9 @@ use rayon::prelude::*;
 use rfd::FileDialog;
 use ultimate_tex_lib::{ImageFile, NutexbFile};
 
-// TODO: Add proper logging using events?
-#[derive(Clone, Default)]
-pub struct App {
-    pub settings: AppSettings,
-    pub png_thumbnails: Vec<String>,
-}
+use crate::overrides::FileSettingsOverrides;
 
-#[derive(Clone, Default)]
-pub struct AppSettings {
-    pub output_folder: Option<PathBuf>,
-    pub save_in_same_folder: bool,
-    pub overrides: FileSettingsOverrides,
-    pub file_settings: Vec<ImageFileSettings>,
-}
-
-#[derive(Clone)]
-pub struct FileSettingsOverrides {
-    pub output_file_type: Option<ImageFileType>,
-    pub output_format: Option<ImageFormat>,
-    pub mipmaps: Option<Mipmaps>,
-    pub output_quality: Option<Quality>,
-}
+// TODO: Add proper logging?
 
 #[derive(Clone)]
 pub struct ImageFileSettings {
@@ -43,58 +24,49 @@ pub struct ImageFileSettings {
     pub output_mipmaps: Mipmaps,
 }
 
-impl App {
-    pub fn remove_file(&mut self, index: usize) {
-        self.settings.file_settings.remove(index);
-        self.png_thumbnails.remove(index);
+pub fn convert_and_export_files(
+    files: &[ImageFileSettings],
+    output_folder: Option<&Path>,
+    save_in_same_folder: bool,
+    overrides: &FileSettingsOverrides,
+) -> Result<Vec<String>, Box<dyn Error>> {
+    // TODO: Log an error if creating the output directory fails.
+    if let Some(output_folder) = output_folder {
+        std::fs::create_dir_all(output_folder)?;
     }
 
-    pub fn clear_files(&mut self) {
-        self.settings.file_settings = Vec::new();
-        self.png_thumbnails = Vec::new();
-    }
+    // TODO: report progress?
+    let mut messages: Vec<_> = files
+        .par_iter()
+        .filter_map(|settings| {
+            let output = if save_in_same_folder {
+                settings.path.parent()
+            } else {
+                output_folder.as_deref()
+            };
 
-    pub fn convert_and_export_files(&self) -> Result<Vec<String>, Box<dyn Error>> {
-        // TODO: Log an error if creating the output directory fails.
-        if let Some(output_folder) = &self.settings.output_folder {
-            std::fs::create_dir_all(output_folder)?;
-        }
-
-        // TODO: report progress?
-        let mut messages: Vec<_> = self
-            .settings
-            .file_settings
-            .par_iter()
-            .filter_map(|settings| {
-                let output = if self.settings.save_in_same_folder {
-                    settings.path.parent()
-                } else {
-                    self.settings.output_folder.as_deref()
-                };
-
-                output.and_then(|output| {
-                    // Collect error messages to display to the user.
-                    let file = ImageFile::from_file(&settings.path).ok()?;
-                    match convert_and_save_file(output, settings, &file, &self.settings.overrides) {
-                        Ok(_) => None,
-                        Err(e) => Some(format!("Error converting {}: {e}", settings.name)),
-                    }
-                })
+            output.and_then(|output| {
+                // Collect error messages to display to the user.
+                let file = ImageFile::from_file(&settings.path).ok()?;
+                match convert_and_save_file(output, settings, &file, &overrides) {
+                    Ok(_) => None,
+                    Err(e) => Some(format!("Error converting {}: {e}", settings.name)),
+                }
             })
-            .collect();
+        })
+        .collect();
 
-        // Always show basic results for the first message.
-        messages.insert(
-            0,
-            format!(
-                "Successfully converted {} of {} file(s)",
-                self.settings.file_settings.len() - messages.len(),
-                self.settings.file_settings.len(),
-            ),
-        );
+    // Always show basic results for the first message.
+    messages.insert(
+        0,
+        format!(
+            "Successfully converted {} of {} file(s)",
+            files.len() - messages.len(),
+            files.len(),
+        ),
+    );
 
-        Ok(messages)
-    }
+    Ok(messages)
 }
 
 pub fn pick_files() -> Option<(Vec<String>, Vec<ImageFileSettings>)> {
@@ -149,18 +121,6 @@ fn encode_png_base64(f: &ImageFile) -> String {
 
     // TODO: change thumbnail generation
     "data:image/png;base64,".to_string()
-}
-
-impl Default for FileSettingsOverrides {
-    fn default() -> Self {
-        // Default to a custom output format to encourage lossless conversions.
-        Self {
-            output_file_type: Some(ImageFileType::Png),
-            output_format: None,
-            mipmaps: Some(Mipmaps::GeneratedAutomatic),
-            output_quality: Some(Quality::Fast),
-        }
-    }
 }
 
 #[derive(PartialEq, Clone, Copy, strum::Display, strum::EnumIter, strum::EnumString)]

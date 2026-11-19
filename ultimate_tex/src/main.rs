@@ -6,7 +6,6 @@ use gpui_kit::{
         IconName, Sizable, Theme, ThemeRegistry,
         button::{Button, ButtonVariants},
         checkbox::Checkbox,
-        form::field,
         menu::DropdownMenu,
         radio::RadioGroup,
         select::{Select, SelectItem, SelectState},
@@ -18,10 +17,13 @@ use gpui_kit::{
 use rfd::AsyncFileDialog;
 use strum::IntoEnumIterator;
 
-use crate::app::{ImageFileSettings, ImageFileType, load_files};
+use crate::{
+    app::{ImageFileSettings, ImageFileType, load_files},
+    overrides::FileSettingsOverrides,
+};
 
-// TODO: add app.rs from ultimate_tex (add dependencies)
 mod app;
+mod overrides;
 
 actions!(
     ultimate_tex,
@@ -215,6 +217,7 @@ struct Application {
     export_folder: Entity<String>,
     save_to_original_folder: bool,
     table_state: Entity<TableState<FilesTableDelegate>>,
+    overrides: Entity<FileSettingsOverrides>,
 }
 
 impl Application {
@@ -227,11 +230,13 @@ impl Application {
                 .col_movable(false)
                 .col_resizable(false)
         });
+        let overrides = cx.new(|cx| FileSettingsOverrides::default());
 
         Self {
             export_folder,
             table_state,
             save_to_original_folder: false,
+            overrides,
         }
     }
 
@@ -344,41 +349,7 @@ impl Render for Application {
                 )
             })
             .child(Button::new("export").label("Export").primary().w_40())
-            .child(
-                h_flex()
-                    .items_start()
-                    .child(field().label("Output Type").child(
-                        RadioGroup::vertical("output-type").children([
-                            "Png",
-                            "Dds",
-                            "Nutexb",
-                            "Bntx",
-                            "Custom...",
-                        ]),
-                    ))
-                    .child(field().label("Output Format").child(
-                        RadioGroup::vertical("output-format").children([
-                            "Color (sRGB) + Alpha",
-                            "Color (Linear) + Alpha",
-                            "Custom...",
-                        ]),
-                    ))
-                    .child(field().label("Mipmaps").child(
-                        RadioGroup::vertical("mipmaps").children([
-                            "Enabled",
-                            "Disabled",
-                            "Custom...",
-                        ]),
-                    ))
-                    .child(field().label("Compression").child(
-                        RadioGroup::vertical("compression").children([
-                            "Fast",
-                            "Normal",
-                            "Slow",
-                            "Custom...",
-                        ]),
-                    )),
-            )
+            .child(self.overrides.clone())
             .child(
                 div()
                     .size_full()
