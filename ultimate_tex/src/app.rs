@@ -9,7 +9,7 @@ use image_dds::{ImageFormat, Mipmaps, Quality, image::Frame};
 use rayon::prelude::*;
 use ultimate_tex_lib::{ImageFile, NutexbFile};
 
-use crate::{File, overrides::FileSettingsOverrides};
+use crate::{overrides::FileSettingsOverrides, table::File};
 
 // TODO: Add proper logging?
 
