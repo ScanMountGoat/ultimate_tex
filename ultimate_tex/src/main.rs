@@ -1,13 +1,13 @@
 use std::{path::PathBuf, sync::Arc};
 
 use gpui_kit::{
-    base::{IndexPath, h_flex, v_flex},
+    base::{Disableable, IndexPath, h_flex, v_flex},
     component::{
         IconName, Sizable, Theme, ThemeRegistry,
         button::{Button, ButtonVariants},
         checkbox::Checkbox,
         menu::DropdownMenu,
-        select::{Select, SelectItem, SelectState},
+        select::{Select, SelectEvent, SelectItem, SelectState},
         table::{Column, DataTable, TableDelegate, TableState},
         tooltip::Tooltip,
     },
@@ -18,7 +18,10 @@ use rfd::AsyncFileDialog;
 use strum::IntoEnumIterator;
 
 use crate::{
-    app::{ImageFileSettings, ImageFileType, load_files},
+    app::{
+        ImageFileSettings, ImageFileType, convert_and_export_files, load_files,
+        optimize_nutexb_files,
+    },
     overrides::FileSettingsOverrides,
 };
 
@@ -55,6 +58,7 @@ struct File {
     output_format_select: Entity<SelectState<Vec<EnumSelectItem<image_dds::ImageFormat>>>>,
     compression_select: Entity<SelectState<Vec<EnumSelectItem<image_dds::Quality>>>>,
     mipmaps_select: Entity<SelectState<Vec<EnumSelectItem<image_dds::Mipmaps>>>>,
+    _subscriptions: Vec<Subscription>,
 }
 
 struct FilesTableDelegate {
@@ -79,42 +83,94 @@ impl FilesTableDelegate {
         }
     }
 
-    fn add_files<T>(&mut self, paths: &[PathBuf], window: &mut Window, cx: &mut Context<T>) {
-        // TODO: par_extend once this actually loads from disk
-        // TODO: don't add duplicate files
-
+    fn add_files(
+        &mut self,
+        paths: &[PathBuf],
+        window: &mut Window,
+        cx: &mut Context<TableState<FilesTableDelegate>>,
+    ) {
         let (thumbnails, settings) = load_files(paths);
 
-        // TODO: set the selects to update the settings.
-        self.files.extend(
-            settings
-                .into_iter()
-                .zip(thumbnails)
-                .map(|(settings, thumbnail)| {
-                    let output_format_select =
-                        cx.new(|cx| enum_select_state(settings.output_format, window, cx));
-                    let compression_select =
-                        cx.new(|cx| enum_select_state(settings.output_quality, window, cx));
-                    let mipmaps_select =
-                        cx.new(|cx| enum_select_state(settings.output_mipmaps, window, cx));
-                    File {
-                        settings,
-                        thumbnail,
-                        output_type_select: cx.new(|cx| {
-                            let variants = vec![
-                                EnumSelectItem(ImageFileType::Png),
-                                EnumSelectItem(ImageFileType::Dds),
-                                EnumSelectItem(ImageFileType::Nutexb),
-                                EnumSelectItem(ImageFileType::Bntx),
-                            ];
-                            SelectState::new(variants, Some(IndexPath::new(0)), window, cx)
-                        }),
-                        output_format_select,
-                        compression_select,
-                        mipmaps_select,
+        for (settings, thumbnail) in settings.into_iter().zip(thumbnails) {
+            // Don't add duplicate files.
+            if self.files.iter().any(|f| f.settings.name == settings.name) {
+                continue;
+            }
+            let new_index = self.files.len();
+
+            let output_type_select = cx.new(|cx| {
+                let variants = vec![
+                    EnumSelectItem(ImageFileType::Png),
+                    EnumSelectItem(ImageFileType::Dds),
+                    EnumSelectItem(ImageFileType::Nutexb),
+                    EnumSelectItem(ImageFileType::Bntx),
+                ];
+                SelectState::new(variants, Some(IndexPath::new(0)), window, cx)
+            });
+            let output_type_select_sub = cx.subscribe_in(
+                &output_type_select,
+                window,
+                move |this, _select, event, _window, _cx| {
+                    if let SelectEvent::Confirm(Some(value)) = event {
+                        this.delegate_mut().files[new_index]
+                            .settings
+                            .output_file_type = *value;
                     }
-                }),
-        );
+                },
+            );
+
+            let output_format_select =
+                cx.new(|cx| enum_select_state(settings.output_format, window, cx));
+            let format_select_sub = cx.subscribe_in(
+                &output_format_select,
+                window,
+                move |this, _select, event, _window, _cx| {
+                    if let SelectEvent::Confirm(Some(value)) = event {
+                        this.delegate_mut().files[new_index].settings.output_format = *value;
+                    }
+                },
+            );
+
+            let compression_select =
+                cx.new(|cx| enum_select_state(settings.output_quality, window, cx));
+            let compression_select_sub = cx.subscribe_in(
+                &compression_select,
+                window,
+                move |this, _select, event, _window, _cx| {
+                    if let SelectEvent::Confirm(Some(value)) = event {
+                        this.delegate_mut().files[new_index].settings.output_quality = *value;
+                    }
+                },
+            );
+
+            // TODO: generated exact doesn't make sense if there's no option to set the number.
+            let mipmaps_select =
+                cx.new(|cx| enum_select_state(settings.output_mipmaps, window, cx));
+            let mipmaps_select_sub = cx.subscribe_in(
+                &mipmaps_select,
+                window,
+                move |this, _select, event, _window, _cx| {
+                    if let SelectEvent::Confirm(Some(value)) = event {
+                        this.delegate_mut().files[new_index].settings.output_mipmaps = *value;
+                    }
+                },
+            );
+
+            self.files.push(File {
+                settings,
+                thumbnail,
+                output_type_select,
+                output_format_select,
+                compression_select,
+                mipmaps_select,
+                _subscriptions: vec![
+                    output_type_select_sub,
+                    format_select_sub,
+                    compression_select_sub,
+                    mipmaps_select_sub,
+                ],
+            });
+        }
     }
 }
 
@@ -190,6 +246,7 @@ impl TableDelegate for FilesTableDelegate {
                     row.settings.dimensions.0, row.settings.dimensions.1, row.settings.dimensions.2
                 ))
                 .into_any_element(),
+            // TODO: replace these selects with the override value text if the overrides are not none
             "output-type" => div()
                 .w_full()
                 .child(Select::new(&row.output_type_select))
@@ -326,8 +383,8 @@ impl Application {
                 .await;
 
             if let Some(handle) = file_handle {
-                let _path = handle.path();
-                // TODO: batch process the nutexb files in parallel
+                let path = handle.path();
+                optimize_nutexb_files(path);
             }
         })
         .detach();
@@ -379,7 +436,35 @@ impl Render for Application {
                         })),
                 )
             })
-            .child(Button::new("export").label("Export").primary().w_40())
+            .child(
+                h_flex()
+                    .gap(px(10.0))
+                    .child(
+                        Button::new("export")
+                            .label("Export")
+                            .primary()
+                            .disabled(
+                                !self.save_to_original_folder
+                                    && self.export_folder.read(cx).is_empty(),
+                            )
+                            .w_40()
+                            .on_click(cx.listener(|this, _, _window, cx| {
+                                let files = &this.table_state.read(cx).delegate().files;
+                                let export_folder = this.export_folder.read(cx);
+                                let export_folder = (!export_folder.is_empty())
+                                    .then_some(std::path::Path::new(export_folder));
+                                // TODO: Log errors.
+                                // TODO: set the button to show progress.
+                                let _ = convert_and_export_files(
+                                    files,
+                                    export_folder,
+                                    this.save_to_original_folder,
+                                    this.overrides.read(cx),
+                                );
+                            })),
+                    )
+                    .child(self.export_folder.read(cx).clone()),
+            )
             .child(self.overrides.clone())
             .child(
                 div()

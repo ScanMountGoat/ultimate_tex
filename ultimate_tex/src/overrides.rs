@@ -8,7 +8,7 @@ use image_dds::{ImageFormat, Mipmaps, Quality};
 
 use crate::app::ImageFileType;
 
-#[derive(Clone)]
+#[derive(Debug, Clone)]
 pub struct FileSettingsOverrides {
     pub output_file_type: Option<ImageFileType>,
     pub output_format: Option<ImageFormat>,

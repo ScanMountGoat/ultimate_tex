@@ -4,19 +4,18 @@ use std::{
     sync::Arc,
 };
 
-use gpui_kit::RenderImage;
+use gpui_kit::{RenderImage, SharedString};
 use image_dds::{ImageFormat, Mipmaps, Quality, image::Frame};
 use rayon::prelude::*;
-use rfd::FileDialog;
 use ultimate_tex_lib::{ImageFile, NutexbFile};
 
-use crate::overrides::FileSettingsOverrides;
+use crate::{File, overrides::FileSettingsOverrides};
 
 // TODO: Add proper logging?
 
 #[derive(Clone)]
 pub struct ImageFileSettings {
-    pub name: String, // TODO: SharedString
+    pub name: SharedString,
     pub path: PathBuf,
     pub format: ImageFormat,
     pub dimensions: (u32, u32, u32),
@@ -27,7 +26,7 @@ pub struct ImageFileSettings {
 }
 
 pub fn convert_and_export_files(
-    files: &[ImageFileSettings],
+    files: &[File],
     output_folder: Option<&Path>,
     save_in_same_folder: bool,
     overrides: &FileSettingsOverrides,
@@ -38,21 +37,23 @@ pub fn convert_and_export_files(
     }
 
     // TODO: report progress?
-    let mut messages: Vec<_> = files
+    let settings_to_export: Vec<_> = files.iter().map(|f| &f.settings).collect();
+    dbg!(overrides);
+    let mut messages: Vec<_> = settings_to_export
         .par_iter()
-        .filter_map(|settings| {
+        .filter_map(|f| {
             let output = if save_in_same_folder {
-                settings.path.parent()
+                f.path.parent()
             } else {
                 output_folder
             };
 
             output.and_then(|output| {
                 // Collect error messages to display to the user.
-                let file = ImageFile::from_file(&settings.path).ok()?;
-                match convert_and_save_file(output, settings, &file, overrides) {
+                let file = ImageFile::from_file(&f.path).ok()?;
+                match convert_and_save_file(output, &f, &file, overrides) {
                     Ok(_) => None,
-                    Err(e) => Some(format!("Error converting {}: {e}", settings.name)),
+                    Err(e) => Some(format!("Error converting {}: {e}", f.name)),
                 }
             })
         })
@@ -109,8 +110,9 @@ fn create_render_image(f: &ImageFile) -> Arc<RenderImage> {
     Arc::new(RenderImage::new([frame]))
 }
 
-#[derive(PartialEq, Clone, Copy, strum::Display, strum::EnumIter, strum::EnumString)]
-#[derive(Default)]
+#[derive(
+    Debug, PartialEq, Clone, Copy, strum::Display, strum::EnumIter, strum::EnumString, Default,
+)]
 pub enum ImageFileType {
     Dds,
     #[default]
@@ -119,7 +121,6 @@ pub enum ImageFileType {
     Nutexb,
     Bntx,
 }
-
 
 impl ImageFileType {
     fn extension(&self) -> &'static str {
@@ -138,7 +139,7 @@ impl ImageFileSettings {
         // Default to the input format to encourage lossless conversions.
         let format = image.image_format();
         ImageFileSettings {
-            name: path.file_name().unwrap().to_string_lossy().to_string(),
+            name: path.file_name().unwrap().to_string_lossy().into(),
             path,
             format,
             dimensions: image.dimensions(),
@@ -160,23 +161,20 @@ impl ImageFileSettings {
     }
 }
 
-pub fn optimize_nutexb_files() {
-    if let Some(folder) = FileDialog::new()
-        .set_title("Select Nutexb Root Folder")
-        .pick_folder()
-    {
-        for entry in globwalk::GlobWalkerBuilder::from_patterns(folder, &["*.{nutexb}"])
-            .build()
-            .unwrap()
-            .filter_map(Result::ok)
-        {
+pub fn optimize_nutexb_files(folder: &Path) {
+    globwalk::GlobWalkerBuilder::from_patterns(folder, &["*.{nutexb}"])
+        .build()
+        .unwrap()
+        .filter_map(Result::ok)
+        .par_bridge()
+        .for_each(|entry| {
             if let Ok(mut nutexb) = NutexbFile::read_from_file(entry.path()) {
                 nutexb.optimize_size();
                 // TODO: log errors
                 let _ = nutexb.write_to_file(entry.path());
+                // TODO: return how many files were processed
             }
-        }
-    }
+        });
 }
 
 fn convert_and_save_file(
