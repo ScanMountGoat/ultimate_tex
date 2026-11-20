@@ -2,7 +2,7 @@ use std::{path::PathBuf, sync::Arc};
 
 use gpui_kit::{
     App, Bounds, Entity, ObjectFit, Pixels, RenderImage, SharedString, Subscription, Window,
-    base::{IndexPath, h_flex},
+    base::{IndexPath, h_flex, v_flex},
     component::{
         button::{Button, ButtonVariants},
         select::{Select, SelectEvent, SelectItem, SelectState},
@@ -61,12 +61,10 @@ impl FilesTableDelegate {
             files: Vec::new(),
             columns: vec![
                 Column::new("image", "Image"),
-                Column::new("format", "Format").width(px(200.0)),
-                Column::new("size", "Size").width(px(150.0)),
-                Column::new("output-type", "Output Type").width(px(150.0)),
-                Column::new("output-format", "Output Format").width(px(200.0)),
-                Column::new("compression", "Compression").width(px(150.0)),
-                Column::new("mipmaps", "Mipmaps").width(px(210.0)),
+                Column::new("output-type", "Type").width(px(120.0)),
+                Column::new("output-format", "Format").width(px(200.0)),
+                Column::new("compression", "Compression").width(px(120.0)),
+                Column::new("mipmaps", "Mipmaps").width(px(150.0)),
                 Column::new("remove", ""),
             ],
             overrides,
@@ -213,6 +211,12 @@ impl TableDelegate for FilesTableDelegate {
 
         let thumbnail = row.thumbnail.clone();
         let full_path = row.settings.path.to_string_lossy().to_string();
+        let size = format!(
+            "{} x {} x {}",
+            row.settings.dimensions.0, row.settings.dimensions.1, row.settings.dimensions.2
+        );
+        let img_format = row.settings.format.to_string();
+
         let child =
             match col.key.as_ref() {
                 "image" => h_flex()
@@ -231,8 +235,16 @@ impl TableDelegate for FilesTableDelegate {
                             .id(format!("thumbnail{row_ix}"))
                             .tooltip(move |window, cx| {
                                 let thumbnail = thumbnail.clone();
-                                Tooltip::element(move |_, _| img(thumbnail.clone()).h(px(256.0)))
-                                    .build(window, cx)
+                                let img_format = img_format.clone();
+                                let size = size.clone();
+                                Tooltip::element(move |_, _| {
+                                    v_flex()
+                                        .gap(px(10.0))
+                                        .child(img_format.clone())
+                                        .child(size.clone())
+                                        .child(img(thumbnail.clone()).h(px(256.0)))
+                                })
+                                .build(window, cx)
                             }),
                     )
                     .child(
@@ -241,20 +253,9 @@ impl TableDelegate for FilesTableDelegate {
                             .tooltip(move |window, cx| {
                                 Tooltip::new(full_path.clone()).build(window, cx)
                             })
-                            .child(row.settings.name.clone()),
+                            .child(row.settings.name.clone())
+                            .truncate(),
                     )
-                    .truncate()
-                    .into_any_element(),
-                "format" => div()
-                    .child(row.settings.format.to_string())
-                    .into_any_element(),
-                "size" => div()
-                    .child(format!(
-                        "{}x{}x{}",
-                        row.settings.dimensions.0,
-                        row.settings.dimensions.1,
-                        row.settings.dimensions.2
-                    ))
                     .into_any_element(),
                 // TODO: replace these selects with the override value text if the overrides are not none
                 "output-type" => div()
@@ -349,7 +350,7 @@ pub fn update_table_column_sizes(
     // Datatable doesn't support responsive layouts like table.
     // Make the name column fill the remaining space.
     this.table_state.update(cx, |state, cx| {
-        state.delegate_mut().columns[name_column_index].width = remaining;
+        state.delegate_mut().columns[name_column_index].width = remaining.max(px(100.0));
         state.refresh(cx);
     })
 }

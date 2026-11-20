@@ -277,7 +277,10 @@ fn initialize_themes(cx: &mut App) {
         .get(&SharedString::from("Ultimate Tex Dark"))
         .cloned()
         .unwrap();
-    Theme::update(cx, |current| current.apply_config(&theme));
+    Theme::update(cx, |current| {
+        current.apply_config(&theme);
+        current.font_size = px(14.0);
+    });
 }
 
 fn main() {
