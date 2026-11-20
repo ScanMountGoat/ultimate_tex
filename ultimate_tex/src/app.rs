@@ -38,7 +38,6 @@ pub fn convert_and_export_files(
 
     // TODO: report progress?
     let settings_to_export: Vec<_> = files.iter().map(|f| &f.settings).collect();
-    dbg!(overrides);
     let mut messages: Vec<_> = settings_to_export
         .par_iter()
         .filter_map(|f| {
@@ -51,7 +50,7 @@ pub fn convert_and_export_files(
             output.and_then(|output| {
                 // Collect error messages to display to the user.
                 let file = ImageFile::from_file(&f.path).ok()?;
-                match convert_and_save_file(output, &f, &file, overrides) {
+                match convert_and_save_file(output, f, &file, overrides) {
                     Ok(_) => None,
                     Err(e) => Some(format!("Error converting {}: {e}", f.name)),
                 }

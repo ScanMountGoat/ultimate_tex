@@ -64,10 +64,11 @@ struct File {
 struct FilesTableDelegate {
     files: Vec<File>,
     columns: Vec<Column>,
+    overrides: Entity<FileSettingsOverrides>,
 }
 
 impl FilesTableDelegate {
-    fn new() -> Self {
+    fn new(overrides: Entity<FileSettingsOverrides>) -> Self {
         Self {
             files: Vec::new(),
             columns: vec![
@@ -80,6 +81,7 @@ impl FilesTableDelegate {
                 Column::new("mipmaps", "Mipmaps").width(px(210.0)),
                 Column::new("remove", ""),
             ],
+            overrides,
         }
     }
 
@@ -212,71 +214,101 @@ impl TableDelegate for FilesTableDelegate {
         let row = &self.files[row_ix];
         let col = &self.columns[col_ix];
 
+        // See if the final file type is compressed to disable irrelevant settings.
+        let is_compressed = !matches!(
+            self.overrides
+                .read(cx)
+                .output_file_type
+                .unwrap_or(row.settings.output_file_type),
+            ImageFileType::Png | ImageFileType::Tiff
+        );
+
         let thumbnail = row.thumbnail.clone();
-        let child = match col.key.as_ref() {
-            "image" => h_flex()
-                .size_full()
-                .gap(px(10.0))
-                .child(
-                    div()
-                        .h_full()
-                        .aspect_square()
-                        .overflow_hidden()
-                        .child(
-                            img(thumbnail.clone())
-                                .size_full()
-                                .object_fit(ObjectFit::Fill), // TODO: fix for cube or non square
-                        )
-                        .id(format!("thumbnail{row_ix}"))
-                        .tooltip(move |window, cx| {
-                            let thumbnail = thumbnail.clone();
-                            Tooltip::element(move |_, _| img(thumbnail.clone()).h(px(256.0)))
-                                .build(window, cx)
-                        }),
-                )
-                .child(row.settings.name.clone())
-                .truncate()
-                .into_any_element(),
-            "format" => div()
-                .child(row.settings.format.to_string())
-                .into_any_element(),
-            "size" => div()
-                .child(format!(
-                    "{}x{}x{}",
-                    row.settings.dimensions.0, row.settings.dimensions.1, row.settings.dimensions.2
-                ))
-                .into_any_element(),
-            // TODO: replace these selects with the override value text if the overrides are not none
-            "output-type" => div()
-                .w_full()
-                .child(Select::new(&row.output_type_select))
-                .into_any_element(),
-            "output-format" => div()
-                .w_full()
-                .child(Select::new(&row.output_format_select))
-                .into_any_element(),
-            "compression" => div()
-                .w_full()
-                .child(Select::new(&row.compression_select))
-                .into_any_element(),
-            "mipmaps" => div()
-                .w_full()
-                .child(Select::new(&row.mipmaps_select))
-                .into_any_element(),
-            "remove" => div()
-                .w_full()
-                .child(
-                    Button::new(format!("remove{row_ix}"))
-                        .label("Remove")
-                        .secondary()
-                        .on_click(cx.listener(move |this, _, _window, cx| {
-                            this.delegate_mut().files.remove(row_ix);
-                            cx.notify();
-                        })),
-                )
-                .into_any_element(),
-            _ => div().into_any_element(),
-        };
+        let full_path = row.settings.path.to_string_lossy().to_string();
+        let child =
+            match col.key.as_ref() {
+                "image" => h_flex()
+                    .size_full()
+                    .gap(px(10.0))
+                    .child(
+                        div()
+                            .h_full()
+                            .aspect_square()
+                            .overflow_hidden()
+                            .child(
+                                img(thumbnail.clone())
+                                    .size_full()
+                                    .object_fit(ObjectFit::Fill), // TODO: fix for cube or non square
+                            )
+                            .id(format!("thumbnail{row_ix}"))
+                            .tooltip(move |window, cx| {
+                                let thumbnail = thumbnail.clone();
+                                Tooltip::element(move |_, _| img(thumbnail.clone()).h(px(256.0)))
+                                    .build(window, cx)
+                            }),
+                    )
+                    .child(
+                        div()
+                            .id(format!("name{row_ix}"))
+                            .tooltip(move |window, cx| {
+                                Tooltip::new(full_path.clone()).build(window, cx)
+                            })
+                            .child(row.settings.name.clone()),
+                    )
+                    .truncate()
+                    .into_any_element(),
+                "format" => div()
+                    .child(row.settings.format.to_string())
+                    .into_any_element(),
+                "size" => div()
+                    .child(format!(
+                        "{}x{}x{}",
+                        row.settings.dimensions.0,
+                        row.settings.dimensions.1,
+                        row.settings.dimensions.2
+                    ))
+                    .into_any_element(),
+                // TODO: replace these selects with the override value text if the overrides are not none
+                "output-type" => div()
+                    .w_full()
+                    .child(
+                        Select::new(&row.output_type_select)
+                            .disabled(self.overrides.read(cx).output_file_type.is_some()),
+                    )
+                    .into_any_element(),
+                "output-format" => div()
+                    .w_full()
+                    .child(Select::new(&row.output_format_select).disabled(
+                        self.overrides.read(cx).output_format.is_some() || !is_compressed,
+                    ))
+                    .into_any_element(),
+                "compression" => div()
+                    .w_full()
+                    .child(Select::new(&row.compression_select).disabled(
+                        self.overrides.read(cx).output_quality.is_some() || !is_compressed,
+                    ))
+                    .into_any_element(),
+                "mipmaps" => div()
+                    .w_full()
+                    .child(
+                        Select::new(&row.mipmaps_select)
+                            .disabled(self.overrides.read(cx).mipmaps.is_some() || !is_compressed),
+                    )
+                    .into_any_element(),
+                "remove" => div()
+                    .w_full()
+                    .child(
+                        Button::new(format!("remove{row_ix}"))
+                            .label("Remove")
+                            .secondary()
+                            .on_click(cx.listener(move |this, _, _window, cx| {
+                                this.delegate_mut().files.remove(row_ix);
+                                cx.notify();
+                            })),
+                    )
+                    .into_any_element(),
+                _ => div().into_any_element(),
+            };
         div()
             .size_full()
             .flex()
@@ -311,14 +343,20 @@ struct Application {
 impl Application {
     fn new(window: &mut Window, cx: &mut Context<Self>) -> Self {
         let export_folder = cx.new(|_cx| String::new());
-        let delegate = FilesTableDelegate::new();
+
+        let overrides = cx.new(|_cx| FileSettingsOverrides::default());
+
+        let delegate = FilesTableDelegate::new(overrides.clone());
         let table_state = cx.new(|cx| {
+            // Changing the overrides should update the table rendering.
+            cx.observe(&overrides, |_this, _target, cx| cx.notify())
+                .detach();
+
             TableState::new(delegate, window, cx)
                 .col_selectable(false)
                 .col_movable(false)
                 .col_resizable(false)
         });
-        let overrides = cx.new(|_cx| FileSettingsOverrides::default());
 
         Self {
             export_folder,
