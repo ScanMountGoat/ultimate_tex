@@ -5,10 +5,10 @@
             "name": "Ultimate Tex Dark",
             "mode": "dark",
             "colors": {
-                "accent.background": "#19b3e6",
+                "accent.background": "#595959",
                 "accent.foreground": "#ffffff",
                 "background": "#1b1b1b",
-                "border": "#3e3936",
+                "border": "#3c3c3c",
                 "danger.active.background": "#fb4934",
                 "foreground": "#c4c4c4",
                 "input.border": "#504945",
@@ -19,7 +19,7 @@
                 "list.active.border": "#b17f1b",
                 "list.even.background": "#212121",
                 "muted.background": "#3c383655",
-                "muted.foreground": "#c4c4c4",
+                "muted.foreground": "#808080",
                 "panel.background": "#282828",
                 "popover.background": "#1b1b1b",
                 "popover.foreground": "#c4c4c4",
@@ -38,8 +38,8 @@
                 "tab.background": "#28282800",
                 "tab.foreground": "#928374",
                 "tab_bar.background": "#28282899",
-                "title_bar.background": "#252525",
-                "title_bar.border": "#3e3936"
+                "title_bar.background": "#202020",
+                "title_bar.border": "#3c3c3c"
             }
         }
     ]

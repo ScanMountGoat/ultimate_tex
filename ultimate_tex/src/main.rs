@@ -3,8 +3,8 @@
 use gpui_kit::{
     base::{Disableable, h_flex, v_flex},
     component::{
-        ActiveTheme, IconName, Sizable, Theme, ThemeRegistry,
-        button::{Button, ButtonVariants},
+        ActiveTheme, IconName, Sizable, Theme, ThemeRegistry, TitleBar,
+        button::{Button, ButtonCustomVariant, ButtonVariants},
         checkbox::Checkbox,
         list::{List, ListState},
         menu::DropdownMenu,
@@ -171,14 +171,12 @@ impl Application {
 
 // TODO: match the layout from ultimate_tex
 impl Render for Application {
-    fn render(&mut self, _window: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
+    fn render(&mut self, window: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
         let is_export_disabled = (!self.save_to_original_folder && self.export_folder.is_empty())
             || self.table_state.read(cx).delegate().files.is_empty()
             || self.is_processing;
         v_flex()
             .size_full()
-            .gap(px(10.0))
-            .p(px(10.0))
             .on_drop(cx.listener(|this, paths: &ExternalPaths, window, cx| {
                 let files = paths.paths();
                 // TODO: add files asynchronously
@@ -191,127 +189,150 @@ impl Render for Application {
             .on_action(cx.listener(Self::on_action_clear_files))
             .on_action(cx.listener(Self::on_action_optimize_nutexb_padding))
             .on_action(cx.listener(Self::on_action_open_wiki))
-            .child(application_menu(self.is_processing))
             .child(
-                Checkbox::new("save-original-folder")
-                    .label("Save to original folder")
-                    .checked(self.save_to_original_folder)
-                    .on_change(cx.listener(|this, checked, _, cx| {
-                        this.save_to_original_folder = *checked;
-                        cx.notify();
-                    })),
-            )
-            .when(!self.save_to_original_folder, |this| {
-                this.child(
-                    h_flex()
-                        .gap(px(10.0))
-                        .child(
-                            Button::new("select-folder")
-                                .label("Select Folder...")
-                                .secondary()
-                                .w_40()
-                                .on_click(cx.listener(|_this, _, window, cx| {
-                                    select_output_folder(window, cx);
-                                })),
-                        )
-                        .child(self.export_folder.clone()),
-                )
-            })
-            .child(
-                Button::new("export")
-                    .label("Export")
-                    .primary()
-                    .disabled(is_export_disabled)
-                    .w_40()
-                    .on_click(cx.listener(|this, _, _window, cx| {
-                        let files: Vec<_> = this
-                            .table_state
-                            .read(cx)
-                            .delegate()
-                            .files
-                            .iter()
-                            .map(|f| f.settings.clone())
-                            .collect();
-
-                        let export_folder = this.export_folder.clone();
-                        let export_folder = (!export_folder.is_empty())
-                            .then_some(std::path::PathBuf::from(export_folder.as_str()));
-
-                        let save_to_original_folder = this.save_to_original_folder;
-                        let overrides = this.overrides.read(cx).clone();
-
-                        this.status_message = format!("Exporting {} files...", files.len()).into();
-                        this.is_processing = true;
-                        cx.spawn(async move |this, cx| {
-                            let start = std::time::Instant::now();
-                            let result = cx
-                                .background_spawn(async move {
-                                    convert_and_export_files(
-                                        files,
-                                        export_folder,
-                                        save_to_original_folder,
-                                        overrides,
-                                    )
-                                })
-                                .await;
-                            let elapsed = start.elapsed();
-
-                            let file_count = result.as_ref().map(|f| f.len()).unwrap_or_default();
-                            this.update(cx, |view, cx| {
-                                view.status_message = format!("Exported {file_count} files").into();
-                                view.is_processing = false;
-                                cx.notify();
-
-                                // TODO: connect this to tracing-subscriber instead.
-                                view.log_list.update(cx, |state, cx| {
-                                    state.delegate_mut().items.push(format!(
-                                        "Exported {file_count} files: {:?}",
-                                        elapsed
-                                    ));
-                                    if let Ok(result) = result {
-                                        for item in result.into_iter().flatten() {
-                                            state.delegate_mut().items.push(item);
-                                        }
-                                    }
-                                    cx.notify();
-                                });
-                            })
-                        })
-                        .detach();
-                    })),
-            )
-            .child(self.overrides.clone())
-            .child(
-                div()
-                    .size_full()
-                    .on_children_prepainted(cx.processor(
-                        |this, child_bounds: Vec<Bounds<Pixels>>, _, cx| {
-                            // Use a workaround to compute a responsive layout.
-                            update_table_column_sizes(this, child_bounds, cx);
-                        },
-                    ))
-                    .child(DataTable::new(&self.table_state).large().stripe(true)),
-            )
-            .child(
-                StatusBar::new()
-                    .text_base()
-                    .bg(cx.theme().background)
-                    .left(self.status_message.clone())
-                    .when(self.is_processing, |this| {
-                        this.child(Progress::new("progress").loading(true))
+                // TODO: icon on windows?
+                // TODO: requires rem size to be set based on default 16px font size?
+                TitleBar::new()
+                    .text_color(if window.is_window_active() {
+                        cx.theme().accent_foreground
+                    } else {
+                        cx.theme().muted_foreground
                     })
-                    .right(
-                        Popover::new("log-popover")
-                            .trigger(
-                                Button::new("open-logs")
-                                    .label("Logs")
-                                    .icon(IconName::TriangleAlert),
-                            )
-                            .child(
-                                div()
-                                    .w(px(400.0))
-                                    .h(px(400.0))
-                                    .child(List::new(&self.log_list)),
+                    .text_sm()
+                    .child(concat!("Ultimate Tex ", env!("CARGO_PKG_VERSION")).to_string()),
+            )
+            .child(
+                v_flex()
+                    .size_full()
+                    .gap(px(10.0))
+                    .p(px(10.0))
+                    .text_size(px(14.0))
+                    .child(application_menu(self.is_processing, cx))
+                    .child(
+                        Checkbox::new("save-original-folder")
+                            .label("Save to original folder")
+                            .text_size(px(14.0))
+                            .checked(self.save_to_original_folder)
+                            .on_change(cx.listener(|this, checked, _, cx| {
+                                this.save_to_original_folder = *checked;
+                                cx.notify();
+                            })),
+                    )
+                    .when(!self.save_to_original_folder, |this| {
+                        this.child(
+                            h_flex()
+                                .gap(px(10.0))
+                                .child(
+                                    Button::new("select-folder")
+                                        .label("Select Folder...")
+                                        .secondary()
+                                        .w_40()
+                                        .on_click(cx.listener(|_this, _, window, cx| {
+                                            select_output_folder(window, cx);
+                                        })),
+                                )
+                                .child(self.export_folder.clone()),
+                        )
+                    })
+                    .child(
+                        Button::new("export")
+                            .label("Export")
+                            .primary()
+                            .disabled(is_export_disabled)
+                            .w_40()
+                            .on_click(cx.listener(|this, _, _window, cx| {
+                                let files: Vec<_> = this
+                                    .table_state
+                                    .read(cx)
+                                    .delegate()
+                                    .files
+                                    .iter()
+                                    .map(|f| f.settings.clone())
+                                    .collect();
+
+                                let export_folder = this.export_folder.clone();
+                                let export_folder = (!export_folder.is_empty())
+                                    .then_some(std::path::PathBuf::from(export_folder.as_str()));
+
+                                let save_to_original_folder = this.save_to_original_folder;
+                                let overrides = this.overrides.read(cx).clone();
+
+                                this.status_message =
+                                    format!("Exporting {} files...", files.len()).into();
+                                this.is_processing = true;
+                                cx.spawn(async move |this, cx| {
+                                    let start = std::time::Instant::now();
+                                    let result = cx
+                                        .background_spawn(async move {
+                                            convert_and_export_files(
+                                                files,
+                                                export_folder,
+                                                save_to_original_folder,
+                                                overrides,
+                                            )
+                                        })
+                                        .await;
+                                    let elapsed = start.elapsed();
+
+                                    let file_count =
+                                        result.as_ref().map(|f| f.len()).unwrap_or_default();
+                                    this.update(cx, |view, cx| {
+                                        view.status_message =
+                                            format!("Exported {file_count} files").into();
+                                        view.is_processing = false;
+                                        cx.notify();
+
+                                        // TODO: connect this to tracing-subscriber instead.
+                                        view.log_list.update(cx, |state, cx| {
+                                            state.delegate_mut().items.push(format!(
+                                                "Exported {file_count} files: {:?}",
+                                                elapsed
+                                            ));
+                                            if let Ok(result) = result {
+                                                for item in result.into_iter().flatten() {
+                                                    state.delegate_mut().items.push(item);
+                                                }
+                                            }
+                                            cx.notify();
+                                        });
+                                    })
+                                })
+                                .detach();
+                            })),
+                    )
+                    .child(self.overrides.clone())
+                    .child(
+                        div()
+                            .size_full()
+                            .on_children_prepainted(cx.processor(
+                                |this, child_bounds: Vec<Bounds<Pixels>>, _, cx| {
+                                    // Use a workaround to compute a responsive layout.
+                                    update_table_column_sizes(this, child_bounds, cx);
+                                },
+                            ))
+                            .child(DataTable::new(&self.table_state).large()),
+                    )
+                    .child(
+                        StatusBar::new()
+                            .text_base()
+                            .bg(cx.theme().background)
+                            .left(self.status_message.clone())
+                            .when(self.is_processing, |this| {
+                                this.child(Progress::new("progress").loading(true))
+                            })
+                            .right(
+                                Popover::new("log-popover")
+                                    .trigger(
+                                        Button::new("open-logs")
+                                            .label("Logs")
+                                            .icon(IconName::TriangleAlert),
+                                    )
+                                    .child(
+                                        div()
+                                            .w(px(400.0))
+                                            .h(px(400.0))
+                                            .child(List::new(&self.log_list)),
+                                    ),
                             ),
                     ),
             )
@@ -340,7 +361,8 @@ fn select_output_folder(window: &mut Window, cx: &mut Context<Application>) {
     .detach();
 }
 
-fn application_menu(is_processing: bool) -> impl IntoElement {
+fn application_menu(is_processing: bool, _cx: &mut Context<Application>) -> impl IntoElement {
+    // TODO: use foreground text color and accent foreground when hovered or active?
     h_flex()
         .child(
             Button::new("file")
@@ -383,7 +405,8 @@ fn initialize_themes(cx: &mut App) {
         .unwrap();
     Theme::update(cx, |current| {
         current.apply_config(&theme);
-        current.font_size = px(14.0);
+        // This fully disables hover colors since the table isn't striped.
+        current.table_hover = Hsla::transparent_black();
     });
 }
 
@@ -398,13 +421,7 @@ fn main() {
 
         initialize_themes(cx);
 
-        let options = WindowOptions {
-            titlebar: Some(TitlebarOptions {
-                title: Some(concat!("Ultimate Tex ", env!("CARGO_PKG_VERSION")).into()),
-                ..Default::default()
-            }),
-            ..Default::default()
-        };
+        let options = TitleBar::window_options();
         open_window(options, cx, |window, cx| {
             cx.new(|cx| Application::new(window, cx))
         })
