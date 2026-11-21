@@ -1,0 +1,46 @@
+{
+    "name": "Custom Themes",
+    "themes": [
+        {
+            "name": "Ultimate Tex Dark",
+            "mode": "dark",
+            "colors": {
+                "accent.background": "#19b3e6",
+                "accent.foreground": "#ffffff",
+                "background": "#1b1b1b",
+                "border": "#3e3936",
+                "danger.active.background": "#fb4934",
+                "foreground": "#c4c4c4",
+                "input.border": "#504945",
+                "link.active.foreground": "#83a598",
+                "link.foreground": "#83a598",
+                "link.hover.foreground": "#83a598",
+                "list.active.background": "#19b3e6",
+                "list.active.border": "#b17f1b",
+                "list.even.background": "#212121",
+                "muted.background": "#3c383655",
+                "muted.foreground": "#c4c4c4",
+                "panel.background": "#282828",
+                "popover.background": "#1b1b1b",
+                "popover.foreground": "#c4c4c4",
+                "primary.background": "#1095c1",
+                "primary.foreground": "#ffffff",
+                "primary.hover.background": "#19b3e6",
+                "ring": "#1095c1",
+                "scrollbar.background": "#26262600",
+                "scrollbar.thumb.background": "#504945",
+                "secondary.active.background": "#595959",
+                "secondary.background": "#595959",
+                "secondary.foreground": "#ffffff",
+                "secondary.hover.background": "#808080",
+                "tab.active.background": "#262626",
+                "tab.active.foreground": "#ebdbb2",
+                "tab.background": "#28282800",
+                "tab.foreground": "#928374",
+                "tab_bar.background": "#28282899",
+                "title_bar.background": "#252525",
+                "title_bar.border": "#3e3936"
+            }
+        }
+    ]
+}

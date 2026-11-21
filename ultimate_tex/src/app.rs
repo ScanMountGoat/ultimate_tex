@@ -1,40 +1,21 @@
 use std::{
     error::Error,
     path::{Path, PathBuf},
+    sync::Arc,
 };
 
-use base64::prelude::*;
-use image_dds::{ImageFormat, Mipmaps, Quality, image::codecs::png::PngEncoder};
+use gpui_kit::{RenderImage, SharedString};
+use image_dds::{ImageFormat, Mipmaps, Quality, image::Frame};
 use rayon::prelude::*;
-use rfd::FileDialog;
 use ultimate_tex_lib::{ImageFile, NutexbFile};
 
-// TODO: Add proper logging using events?
-#[derive(Clone, Default)]
-pub struct App {
-    pub settings: AppSettings,
-    pub png_thumbnails: Vec<String>,
-}
+use crate::overrides::FileSettingsOverrides;
 
-#[derive(Clone, Default)]
-pub struct AppSettings {
-    pub output_folder: Option<PathBuf>,
-    pub save_in_same_folder: bool,
-    pub overrides: FileSettingsOverrides,
-    pub file_settings: Vec<ImageFileSettings>,
-}
-
-#[derive(Clone)]
-pub struct FileSettingsOverrides {
-    pub output_file_type: Option<ImageFileType>,
-    pub output_format: Option<ImageFormat>,
-    pub mipmaps: Option<Mipmaps>,
-    pub output_quality: Option<Quality>,
-}
+// TODO: Add proper logging?
 
 #[derive(Clone)]
 pub struct ImageFileSettings {
-    pub name: String,
+    pub name: SharedString,
     pub path: PathBuf,
     pub format: ImageFormat,
     pub dimensions: (u32, u32, u32),
@@ -44,79 +25,41 @@ pub struct ImageFileSettings {
     pub output_mipmaps: Mipmaps,
 }
 
-impl App {
-    pub fn remove_file(&mut self, index: usize) {
-        self.settings.file_settings.remove(index);
-        self.png_thumbnails.remove(index);
+pub fn convert_and_export_files(
+    files: Vec<ImageFileSettings>,
+    output_folder: Option<PathBuf>,
+    save_in_same_folder: bool,
+    overrides: FileSettingsOverrides,
+) -> Result<Vec<Option<String>>, std::io::Error> {
+    // TODO: Log an error if creating the output directory fails.
+    if let Some(output_folder) = &output_folder {
+        std::fs::create_dir_all(output_folder)?;
     }
 
-    pub fn clear_files(&mut self) {
-        self.settings.file_settings = Vec::new();
-        self.png_thumbnails = Vec::new();
-    }
+    let messages: Vec<_> = files
+        .par_iter()
+        .map(|f| {
+            let output = if save_in_same_folder {
+                f.path.parent().map(|p| p.to_owned())
+            } else {
+                output_folder.clone()
+            };
 
-    pub fn convert_and_export_files(&self) -> Result<Vec<String>, Box<dyn Error>> {
-        // TODO: Log an error if creating the output directory fails.
-        if let Some(output_folder) = &self.settings.output_folder {
-            std::fs::create_dir_all(output_folder)?;
-        }
-
-        // TODO: report progress?
-        let mut messages: Vec<_> = self
-            .settings
-            .file_settings
-            .par_iter()
-            .filter_map(|settings| {
-                let output = if self.settings.save_in_same_folder {
-                    settings.path.parent()
-                } else {
-                    self.settings.output_folder.as_deref()
-                };
-
-                output.and_then(|output| {
-                    // Collect error messages to display to the user.
-                    let file = ImageFile::from_file(&settings.path).ok()?;
-                    match convert_and_save_file(output, settings, &file, &self.settings.overrides) {
-                        Ok(_) => None,
-                        Err(e) => Some(format!("Error converting {}: {e}", settings.name)),
-                    }
-                })
+            output.and_then(|output| {
+                // Collect error messages to display to the user.
+                let file = ImageFile::from_file(&f.path).ok()?;
+                match convert_and_save_file(&output, f, &file, &overrides) {
+                    Ok(_) => None,
+                    Err(e) => Some(format!("Error converting {}: {e}", f.name)),
+                }
             })
-            .collect();
+        })
+        .collect();
 
-        // Always show basic results for the first message.
-        messages.insert(
-            0,
-            format!(
-                "Successfully converted {} of {} file(s)",
-                self.settings.file_settings.len() - messages.len(),
-                self.settings.file_settings.len(),
-            ),
-        );
-
-        Ok(messages)
-    }
+    Ok(messages)
 }
 
-pub fn pick_files() -> Option<(Vec<String>, Vec<ImageFileSettings>)> {
-    // Don't modify app directly to make it easy to run in a background thread.
-    if let Some(files) = FileDialog::new()
-        .add_filter(
-            "image files",
-            &["png", "tiff", "nutexb", "bntx", "jpeg", "jpg", "dds"],
-        )
-        .pick_files()
-    {
-        let (new_thumbnails, new_settings) = load_files(files);
-        Some((new_thumbnails, new_settings))
-    } else {
-        None
-    }
-}
-
-pub fn load_files(files: Vec<PathBuf>) -> (Vec<String>, Vec<ImageFileSettings>) {
-    let start = std::time::Instant::now();
-
+pub fn load_files(files: &[PathBuf]) -> (Vec<Arc<RenderImage>>, Vec<ImageFileSettings>) {
     // Only the expensive file reading benefits from parallelism.
     // TODO: Store or log errors?
     let new_files: Vec<_> = files
@@ -125,7 +68,7 @@ pub fn load_files(files: Vec<PathBuf>) -> (Vec<String>, Vec<ImageFileSettings>) 
         .collect();
     let new_thumbnails: Vec<_> = new_files
         .par_iter()
-        .map(|(_, image)| encode_png_base64(image))
+        .map(|(_, image)| create_render_image(image))
         .collect();
 
     let new_settings = new_files
@@ -133,48 +76,33 @@ pub fn load_files(files: Vec<PathBuf>) -> (Vec<String>, Vec<ImageFileSettings>) 
         .map(|(file, image)| ImageFileSettings::from_image(file.clone(), &image))
         .collect();
 
-    println!("Loaded {} files in {:?}", files.len(), start.elapsed());
     (new_thumbnails, new_settings)
 }
 
-fn encode_png_base64(f: &ImageFile) -> String {
-    // Convert to an html compatible format.
+fn create_render_image(f: &ImageFile) -> Arc<RenderImage> {
+    // Convert to a gpui compatible format.
     let mut image = f.to_image().unwrap();
-    // Disable alpha for better display of PRM and NOR.
-    image.pixels_mut().for_each(|p| p[3] = 255u8);
+    image.pixels_mut().for_each(|p| {
+        // gpui expects BGRA instead of RGBA.
+        p.0.swap(0, 2);
+        // Disable alpha for better display of PRM and NOR.
+        p[3] = 255u8;
+    });
 
-    let mut png_bytes = Vec::new();
-    let encoder = PngEncoder::new(&mut png_bytes);
-    image.write_with_encoder(encoder).unwrap();
-
-    "data:image/png;base64,".to_string() + &BASE64_STANDARD.encode(png_bytes)
+    let frame = Frame::new(image);
+    Arc::new(RenderImage::new([frame]))
 }
 
-impl Default for FileSettingsOverrides {
-    fn default() -> Self {
-        // Default to a custom output format to encourage lossless conversions.
-        Self {
-            output_file_type: Some(ImageFileType::Png),
-            output_format: None,
-            mipmaps: Some(Mipmaps::GeneratedAutomatic),
-            output_quality: Some(Quality::Fast),
-        }
-    }
-}
-
-#[derive(PartialEq, Clone, Copy, strum::Display, strum::EnumIter, strum::EnumString)]
+#[derive(
+    Debug, PartialEq, Clone, Copy, strum::Display, strum::EnumIter, strum::EnumString, Default,
+)]
 pub enum ImageFileType {
     Dds,
+    #[default]
     Png,
     Tiff,
     Nutexb,
     Bntx,
-}
-
-impl Default for ImageFileType {
-    fn default() -> Self {
-        Self::Png
-    }
 }
 
 impl ImageFileType {
@@ -194,7 +122,7 @@ impl ImageFileSettings {
         // Default to the input format to encourage lossless conversions.
         let format = image.image_format();
         ImageFileSettings {
-            name: path.file_name().unwrap().to_string_lossy().to_string(),
+            name: path.file_name().unwrap().to_string_lossy().into(),
             path,
             format,
             dimensions: image.dimensions(),
@@ -216,23 +144,24 @@ impl ImageFileSettings {
     }
 }
 
-pub fn optimize_nutexb_files() {
-    if let Some(folder) = FileDialog::new()
-        .set_title("Select Nutexb Root Folder")
-        .pick_folder()
-    {
-        for entry in globwalk::GlobWalkerBuilder::from_patterns(folder, &["*.{nutexb}"])
-            .build()
-            .unwrap()
-            .filter_map(Result::ok)
-        {
+pub fn optimize_nutexb_files(folder: &Path) -> usize {
+    globwalk::GlobWalkerBuilder::from_patterns(folder, &["*.{nutexb}"])
+        .build()
+        .unwrap()
+        .filter_map(Result::ok)
+        .par_bridge()
+        .map(|entry| {
             if let Ok(mut nutexb) = NutexbFile::read_from_file(entry.path()) {
                 nutexb.optimize_size();
                 // TODO: log errors
                 let _ = nutexb.write_to_file(entry.path());
+                // Count how many files were processed.
+                1
+            } else {
+                0
             }
-        }
-    }
+        })
+        .count()
 }
 
 fn convert_and_save_file(
