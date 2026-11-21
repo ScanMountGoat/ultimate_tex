@@ -1,3 +1,5 @@
+#![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
+
 use gpui_kit::{
     base::{Disableable, h_flex, v_flex},
     component::{
@@ -53,6 +55,7 @@ impl Application {
                 .detach();
 
             TableState::new(delegate, window, cx)
+                .row_selectable(false)
                 .col_selectable(false)
                 .col_movable(false)
                 .col_resizable(false)

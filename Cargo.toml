@@ -6,13 +6,3 @@ resolver = "3"
 image = "0.25.5"
 image_dds = "0.7.0"
 strum = { version = "0.26.3", features = ["derive"] }
-
-[profile.wasm-dev]
-inherits = "dev"
-opt-level = 1
-
-[profile.server-dev]
-inherits = "dev"
-
-[profile.android-dev]
-inherits = "dev"
