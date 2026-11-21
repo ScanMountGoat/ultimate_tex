@@ -4,7 +4,7 @@ use gpui_kit::{
     base::{Disableable, h_flex, v_flex},
     component::{
         ActiveTheme, IconName, Sizable, Theme, ThemeRegistry, TitleBar,
-        button::{Button, ButtonCustomVariant, ButtonVariants},
+        button::{Button, ButtonVariants},
         checkbox::Checkbox,
         list::{List, ListState},
         menu::DropdownMenu,
@@ -128,38 +128,37 @@ impl Application {
                 .pick_folder()
                 .await;
 
-            this.update(cx, |view, cx| {
-                view.status_message = "Optimizing nutexb padding...".into();
-                view.is_processing = true;
-                cx.notify();
-            })
-            .unwrap();
-
-            let start = std::time::Instant::now();
-            let optimized_count = cx
-                .background_spawn(async {
-                    file_handle
-                        .map(|handle| optimize_nutexb_files(handle.path()))
-                        .unwrap_or_default()
-                })
-                .await;
-            let elapsed = start.elapsed();
-
-            this.update(cx, |view, cx| {
-                view.status_message = format!("Optimized {optimized_count} nutexb files").into();
-                view.is_processing = false;
-                cx.notify();
-
-                // TODO: connect this to tracing-subscriber instead.
-                view.log_list.update(cx, |state, cx| {
-                    state.delegate_mut().items.push(format!(
-                        "Optimized {optimized_count} nutexb files: {:?}",
-                        elapsed
-                    ));
+            if let Some(handle) = file_handle {
+                this.update(cx, |view, cx| {
+                    view.status_message = "Optimizing nutexb padding...".into();
+                    view.is_processing = true;
                     cx.notify();
-                });
-            })
-            .unwrap();
+                })
+                .unwrap();
+
+                let start = std::time::Instant::now();
+                let optimized_count = cx
+                    .background_spawn(async move { optimize_nutexb_files(handle.path()) })
+                    .await;
+                let elapsed = start.elapsed();
+
+                this.update(cx, |view, cx| {
+                    view.status_message =
+                        format!("Optimized {optimized_count} nutexb files").into();
+                    view.is_processing = false;
+                    cx.notify();
+
+                    // TODO: connect this to tracing-subscriber instead.
+                    view.log_list.update(cx, |state, cx| {
+                        state.delegate_mut().items.push(format!(
+                            "Optimized {optimized_count} nutexb files: {:?}",
+                            elapsed
+                        ));
+                        cx.notify();
+                    });
+                })
+                .unwrap();
+            }
         })
         .detach();
     }
@@ -376,7 +375,7 @@ fn application_menu(is_processing: bool, _cx: &mut Context<Application>) -> impl
         .child(Button::new("batch").ghost().label("Batch").dropdown_menu(
             move |menu, _window, _cx| {
                 menu.menu_with_enable(
-                    "Optimize Nutexb Padding..,",
+                    "Optimize Nutexb Padding...",
                     Box::new(OptimizeNutexbPadding),
                     !is_processing,
                 )
