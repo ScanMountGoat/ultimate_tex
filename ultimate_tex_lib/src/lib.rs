@@ -203,12 +203,13 @@ impl ImageFile {
 }
 
 fn fix_mipmap_count(nutexb: &mut NutexbFile) {
-    let max_mipmaps = nutexb
+    // Add 1 to include the final 1x1 mip level.
+    let max_dimension = nutexb
         .footer
         .width
         .max(nutexb.footer.height)
-        .max(nutexb.footer.depth)
-        .ilog2();
+        .max(nutexb.footer.depth);
+    let max_mipmaps = max_dimension.ilog2() + 1;
     nutexb.footer.mipmap_count = nutexb.footer.mipmap_count.min(max_mipmaps);
 }
 
