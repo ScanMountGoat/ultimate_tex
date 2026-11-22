@@ -9,6 +9,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Changed
 * Improved the UI for ultimate_tex to be more compact and better display progress and errors.
+* Updated the application logo for MacOS to use the "squircle" design to match design guidelines.
 
 ### Fixed
 * Fixed an issue where drag and drop did not work on Windows.
