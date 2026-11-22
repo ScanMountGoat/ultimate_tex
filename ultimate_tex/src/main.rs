@@ -1,5 +1,7 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
+use std::sync::Arc;
+
 use gpui_kit::{
     base::{Disableable, h_flex, v_flex},
     component::{
@@ -42,6 +44,7 @@ struct Application {
     is_processing: bool,
     status_message: SharedString,
     log_list: Entity<ListState<LogListDelegate>>,
+    application_logo: Arc<Image>,
 }
 
 impl Application {
@@ -63,6 +66,11 @@ impl Application {
 
         let log_list = cx.new(|cx| ListState::new(LogListDelegate::default(), window, cx));
 
+        let application_logo = Arc::new(Image::from_bytes(
+            ImageFormat::Svg,
+            include_bytes!("../icons/UltimateTexIcon.svg").to_vec(),
+        ));
+
         Self {
             export_folder: SharedString::default(),
             table_state,
@@ -71,6 +79,7 @@ impl Application {
             status_message: SharedString::default(),
             is_processing: false,
             log_list,
+            application_logo,
         }
     }
 
@@ -189,8 +198,6 @@ impl Render for Application {
             .on_action(cx.listener(Self::on_action_optimize_nutexb_padding))
             .on_action(cx.listener(Self::on_action_open_wiki))
             .child(
-                // TODO: icon on windows?
-                // TODO: requires rem size to be set based on default 16px font size?
                 TitleBar::new()
                     .text_color(if window.is_window_active() {
                         cx.theme().accent_foreground
@@ -198,7 +205,16 @@ impl Render for Application {
                         cx.theme().muted_foreground
                     })
                     .text_sm()
-                    .child(concat!("Ultimate Tex ", env!("CARGO_PKG_VERSION")).to_string()),
+                    .child(
+                        div()
+                            .flex()
+                            .items_center()
+                            .gap_2()
+                            .when(cfg!(windows), |this| {
+                                this.child(img(self.application_logo.clone()).size(px(16.0)))
+                            })
+                            .child(concat!("Ultimate Tex ", env!("CARGO_PKG_VERSION")).to_string()),
+                    ),
             )
             .child(
                 v_flex()
